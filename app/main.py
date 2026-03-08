@@ -7,14 +7,17 @@ from typing import List, Optional
 from dotenv import load_dotenv
 
 
-app = FastAPI()
-
 # Configuration
+
+app = FastAPI()
 
 load_dotenv()
 
+# Security 
+
 ADMIN_API_KEY = os.getenv("ADMIN_API_KEY")
 
+# fake DB
 
 products = []
 
@@ -75,15 +78,18 @@ def list_products(
     category: Optional[str] = None
 ):
     # 1. filtrer
+
     if category:
         filtered = [p for p in products if p.category == category]
     else:
         filtered = products
 
     # 2. total après filtre
+
     total = len(filtered)
 
     # 3. pagination
+
     start = (page - 1) * page_size
     end = start + page_size
 
@@ -97,9 +103,9 @@ def list_products(
 
 @app.get("/products/{id}", response_model=Product)
 def get_product(id: UUID):
-    for p in products:
-        if p.id == id:
-            return p
+    for product in products:
+        if product.id == id:
+            return product
     raise HTTPException(status_code=404, detail="Product not found")
 
 
@@ -121,9 +127,9 @@ def create_product(product: ProductCreate, _ = Depends(require_admin)):
 
 @app.patch("/products/{id}", response_model=Product)
 def update_product(id: UUID, update: ProductUpdate, _ = Depends(require_admin)):
-    for p in products:
-        if p.id == id:
-            found = p
+    for product in products:
+        if product.id == id:
+            found = product
             break
     else:
         raise HTTPException(status_code=404, detail="Product not found")
