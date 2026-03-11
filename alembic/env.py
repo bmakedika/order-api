@@ -1,5 +1,7 @@
 from os import getenv
 from dotenv import load_dotenv
+from app.core.database import Base
+from app.models import order
 
 
 load_dotenv()  # Load environment variables from .env file
