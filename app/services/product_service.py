@@ -62,13 +62,13 @@ def create_product(db: Session, data: ProductCreate):
         'price_cents': data.price_cents,
         'currency': data.currency,
         'category': data.category,
-        'is_activate': True,
+        'is_active': True,
         'created_at': datetime.now(timezone.utc),
     })
 
 
 
-def update_produc(db: Session, product_id: UUID, data: ProductUpdate):
+def update_product(db: Session, product_id: UUID, data: ProductUpdate):
     product = product_repo.get_by_id(db, product_id)
     if not product:
         return None
