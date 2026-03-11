@@ -12,3 +12,8 @@ DATABASE_URL = getenv('DATABASE_URL')
 SECRET_KEY = getenv('SECRET_KEY', 'change-me-in-production')
 ALGORITHM = getenv('ALGORITHM', 'HS256') 
 TOKEN_EXPIRE_MINUTES = int(getenv('TOKEN_EXPIRE_MINUTES', '30'))
+
+# Admin and user credentials
+
+ADMIN_PASSWORD = getenv('ADMIN_PASSWORD', 'admin-sercret')
+USER_PASSWORD = getenv('USER_PASSWORD', 'user-sercret')
