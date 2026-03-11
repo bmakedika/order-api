@@ -1,7 +1,11 @@
 from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError
-from fastapi import Header, HTTPException
+from fastapi import Header, HTTPException, Depends
+from fastapi.security import HTTPBearer
 from app.core.config import SECRET_KEY, ALGORITHM, TOKEN_EXPIRE_MINUTES
+
+
+security = HTTPBearer()
 
 
 def create_access_token(username: str, role: str) -> str:
@@ -21,10 +25,8 @@ def decode_token(token: str) -> dict:
         raise HTTPException(status_code=401, detail='Invalid or expired token')
 
 
-def require_admin(authorization: str = Header()):
-    if not authorization.startswith('Bearer'):
-        raise HTTPException(status_code=401, detail='Missing token')
-    token = authorization.removeprefix('Bearer')
+def require_admin(credentials = Depends(security)):
+    token = credentials.credentials
     payload = decode_token(token)
     if payload.get('role') != 'admin':
         raise HTTPException(status_code=403, detail='Forbidden')
