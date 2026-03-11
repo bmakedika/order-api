@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends
-from uuid import UUID, uuid4
-from datetime import datetime, timezone
+from uuid import UUID
 from typing import Optional
 from app.schemas.product import Product, ProductCreate, ProductUpdate, ProductList
-from app.storage.fake_db import products
 from app.core.auth import require_admin
-from app.services.product_service import get_product_by_id, list_products as list_products_service
+from app.core.database import get_db
+from app.services import product_service
+from sqlalchemy.orm import Session
 
 
 router = APIRouter()
@@ -19,9 +19,11 @@ def get_products(
     min_price: Optional[int] = None,
     max_price: Optional[int] = None,
     sort: Optional[str] = None,
+    db: Session = Depends(get_db),
 ):
     
-    return list_products_service(
+    return product_service.list_products(
+        db=db,
         page=page,
         page_size=page_size,
         category=category,
@@ -32,82 +34,41 @@ def get_products(
 
 
 @router.get('/products/{id}', response_model=Product)
-def get_product(id: UUID):
-    product = get_product_by_id(id)
+def get_product(id: UUID, db: Session = Depends(get_db)):
+    product = product_service.get_product_by_id(db, id)
     if not product:
         raise HTTPException(status_code=404, detail='Product not found')
     return product
 
 
-@router.post(
-    '/products',
-    response_model=Product,
-    responses={
-        401: {'description': 'Missing or invalid API Key'},
-        403: {'description': 'Forbidden - admin only'}
-    },
-)
-def create_product(product: ProductCreate, _ = Depends(require_admin)):
-    new_product = Product(
-        id=uuid4(),
-        name=product.name,
-        description=product.description,
-        price_cents=product.price_cents,
-        currency=product.currency,
-        category=product.category,
-        is_active=True,
-        created_at=datetime.now(timezone.utc),
-    )
-    products.append(new_product)
-    return new_product
+@router.post('/products', response_model=Product)
+def create_product(
+    product: ProductCreate,
+    _=Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return product_service.create_product(db, product)
 
 
-@router.patch(
-    '/products/{id}',
-    response_model=Product,
-    responses={
-        401: {'description': 'Missing or invalid token'},
-        403: {'description': 'Forbidden - admin only'},
-        404: {'description': 'Product not found'},
-    },
-)
-def update_product(id: UUID, update: ProductUpdate, _ = Depends(require_admin)):
-    for product in products:
-        if product.id == id:
-            found = product
-            break
-    else:
+@router.patch('/products/{id}', response_model=Product)
+def update_product(
+    id: UUID, 
+    update: ProductUpdate, 
+    _= Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    product = product_service.get_product_by_id(db, id, update)
+    if not product:
         raise HTTPException(status_code=404, detail='Product not found')
-
-    if update.name is not None:
-        found.name = update.name
-    if update.description is not None:
-        found.description = update.description
-    if update.price_cents is not None:
-        found.price_cents = update.price_cents
-    if update.currency is not None:
-        found.currency = update.currency
-    if update.category is not None:
-        found.category = update.category
-
-    return found
+    return product
 
 
-@router.delete(
-    '/products/{id}',
-    status_code=204,
-    responses={
-        401: {"description": "Missing or invalid token"},
-        403: {"description": "Forbidden - admin only"},
-        404: {"description": "Product not found"},
-    },
-)
-def delete_product(id: UUID, _ = Depends(require_admin)):
-    for product in products:
-        if product.id == id:
-            found = product
-            break
-    else:
+@router.delete('/products/{id}', status_code=204)
+def delete_product(
+    id: UUID,
+    _=Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    deleted = product_service.delete_product(db, id)
+    if not deleted:
         raise HTTPException(status_code=404, detail='Product not found')
-
-    found.is_active = False
