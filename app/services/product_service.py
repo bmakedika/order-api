@@ -19,7 +19,7 @@ def list_products(
     max_price: Optional[int] = None,
     sort: Optional[str] = None,
 ):
-    products = product_repo.list_active(db)
+    filtered = product_repo.list_active(db)
     
 
     if category:
@@ -47,7 +47,7 @@ def list_products(
     end = start + page_size
 
     return {
-        'items': products[start:end],
+        'items': filtered[start:end],
         'page': page,
         'page_size': page_size,
         'total': total,
