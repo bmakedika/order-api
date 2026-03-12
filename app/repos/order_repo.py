@@ -30,7 +30,7 @@ def add_item(db: Session, data: dict) -> OrderItemModel:
 def remove_item(db: Session, order_id: UUID, item_id: UUID) -> bool:
     item = db.query(OrderItemModel).filter(
         OrderItemModel.id == item_id,
-        OrderItemModel.order.id == order_id,
+        OrderItemModel.order_id == order_id,
     ).first()
     if not item:
         return False
