@@ -1,0 +1,40 @@
+from sqlalchemy.orm import Session
+from uuid import UUID
+from app.repos import order_repo
+from app.models.order import OrderStatus
+from app.core.redis_client import get_redis
+
+
+IDEMPOTENCY_TTL = 86400
+
+
+def pay_order(db: Session, order_id: UUID, idempotency_key: str):
+    redis = get_redis()
+    
+    #
+    cached = redis.get(f'idempotency:{idempotency_key}')
+    if cached:
+        return order_repo.get_by_id(db, order_id), 'already_processed'
+
+    # check if order exists
+    order = order_repo.get_by_id(db, order_id)
+    if not order:
+        return None, 'order_not_found'
+    
+    # check if order is in a valid state
+    if order.status != OrderStatus.DRAFT:
+        return order, 'invalid_status'
+
+    # check if order total is not empty
+    if order.total_cents == 0:
+        return order, 'empty_order'
+    
+    order.status = OrderStatus.PAID
+    db.commit()
+    db.refresh(order)
+
+
+    # cache the result in redis
+    redis.set(f'idempotency:{idempotency_key}', 'paid', ex=IDEMPOTENCY_TTL)
+
+    return order, None
