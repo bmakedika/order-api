@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Header
 from uuid import UUID
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -63,3 +63,25 @@ def remove_item(
         raise HTTPException(status_code=404, detail='Order not found')
     if error == 'item_not_found':
         raise HTTPException(status_code=404, detail='Item not found')
+    
+
+
+@router.post('/orders/{order_id}/pay', response_model=OrderResponse)
+def pay_order(
+    order_id: UUID,
+    _= Depends(require_user),
+    db: Session = Depends(get_db),
+    idempotency_key: str = Header(..., alias='Idempotency-Key'),
+):
+    from app.services import payment_service
+    order, error = payment_service.pay_order(db, order_id, idempotency_key)
+
+    if error == 'order_not_found':
+        raise HTTPException(status_code=404, detail='Order not found')
+    if error == 'invalid_status':
+        raise HTTPException(status_code=409, detail='Order already paid or cancelled')
+    if error == 'empty_order':
+        raise HTTPException(status_code=400, detail='Cannot pay empty order')
+    
+
+    return order
