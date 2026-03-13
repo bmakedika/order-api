@@ -57,7 +57,7 @@ def update_product(
     _= Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    product = product_service.get_product_by_id(db, id, update)
+    product = product_service.update_product(db, id, update)
     if not product:
         raise HTTPException(status_code=404, detail='Product not found')
     return product
