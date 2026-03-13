@@ -5,6 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from app.main import app
 from app.core.database import Base, get_db
 from app.core.auth import require_admin, require_user
+from app.core.redis_client import get_redis
 
 
 # DB SQLite in momory for testing
@@ -38,6 +39,9 @@ def client():
     # create tables
     Base.metadata.create_all(bind=engine)
 
+    # flush Redis before each test
+    get_redis().flushdb()
+
     # override dependencies
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[require_admin] = override_require_admin
@@ -45,7 +49,6 @@ def client():
 
     yield TestClient(app)
 
-
-    # Clean up DB after test
+    # clean up
     Base.metadata.drop_all(bind=engine)
     app.dependency_overrides = {}
