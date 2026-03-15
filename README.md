@@ -62,6 +62,8 @@ cp .env.example .env
 # Edit .env with your values
 ```
 
+> **Tip:** Use a simple password without special characters (e.g. `secret`) in `POSTGRES_PASSWORD` and `DATABASE_URL` to avoid encoding issues.
+
 > **Note (Linux/WSL):** Replace `localhost` with `127.0.0.1` in `DATABASE_URL`.
 > If your password contains special characters (e.g. `@`), encode them in the URL:
 > `@` → `%40`, `!` → `%21`
@@ -77,6 +79,16 @@ docker-compose up -d
 ```bash
 alembic upgrade head
 ```
+
+> **Note:** If `alembic upgrade head` fails with a password error, your Docker volume
+> may contain an old password. Reset it with:
+>
+> ```bash
+> docker-compose down -v
+> docker-compose up -d
+> ```
+>
+> ⚠️ This deletes all existing data in the database.
 
 ### 7. Start the server
 
