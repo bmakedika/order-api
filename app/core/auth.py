@@ -27,7 +27,11 @@ def decode_token(token: str) -> dict:
 
 def require_admin(credentials = Depends(security)):
     token = credentials.credentials
-    return decode_token(token)
+    payload = decode_token(token)
+    if payload.get('role') != 'admin':
+        raise HTTPException(status_code=403, detail='Forbidden')
+    return payload
+
 
 
 def require_user(credentials = Depends(security)):
