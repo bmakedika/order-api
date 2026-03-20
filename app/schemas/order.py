@@ -34,3 +34,8 @@ class OrderResponse(BaseModel):
     customer_id: str
     created_at: datetime
     items: List[OrderItemResponse] = []
+
+
+
+class OrderStatusUpdate(BaseModel):
+    status: OrderStatus
