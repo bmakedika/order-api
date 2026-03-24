@@ -160,3 +160,14 @@ def test_update_order_status(client):
     assert response.status_code == 200
     data = response.json()
     assert data['status'] == 'shipped'
+
+
+
+def test_update_order_status_not_found(client):
+    response = client.patch(
+        f'/orders/00000000-0000-0000-0000-000000000000/status',
+        json={'status': 'shipped'}
+    )
+    assert response.status_code == 404
+    data = response.json()
+    assert data['detail'] == 'Order not found'
