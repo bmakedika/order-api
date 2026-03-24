@@ -144,3 +144,19 @@ def test_remove_item(client):
     order_after = client.get(f"/orders/{order['id']}").json()
     assert order_after["total_cents"] == 0
     assert order_after["items"] == []
+
+
+
+def test_update_order_status(client):
+    order = client.post('/orders', json={
+        'customer_id': 'user-123',
+        'currency': 'EUR'
+    }).json()
+    response = client.patch(
+        f"/orders/{order['id']}/status",
+        json={"status": "shipped"}
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data['status'] == 'shipped'
