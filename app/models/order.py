@@ -29,6 +29,7 @@ class OrderModel(Base):
     created_at  = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     items = relationship('OrderItemModel', back_populates='order')
+    invoices = relationship('InvoiceModel', back_populates='order')
 
 
 
