@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import time
+import matplotlib.pyplot as plt
 
 
 st.set_page_config(page_title="Dashboard", layout="wide")
@@ -41,6 +42,42 @@ while True:
         # Show the last 10 events in a table
         st.subheader('Latest events') 
         st.dataframe(df.tail(10), use_container_width=True)
+
+        # bar chart endpoint/duration_ms
+
+        fig, ax = plt.subplots()
+
+        ax.bar(df['endpoint'], df['duration_ms'])
+        ax.set_xlabel('Endpoint')
+        ax.set_ylabel('Duration (ms)')
+        ax.set_title('Latency by Endpoint (ms)')
+        ax.tick_params(axis='x', rotation=45)
+        plt.tight_layout()
+        st.pyplot(fig)
+
+        # Camembert chart showing success/error distribution
+
+        success_count = len(df[df['status_code'] < 400])
+        client_error_count = len(df[(df['status_code'] >= 400) & (df['status_code'] < 500)])
+        server_error_count = len(df[df['status_code'] >= 500])
+
+        fig, ax = plt.subplots()
+        ax.pie([success_count, client_error_count, server_error_count], labels=['Success', 'Client Errors', 'Server Errors'], autopct='%1.1f%%')
+        ax.set_title('Request Outcome Distribution')
+        st.pyplot(fig)
+
+        # activity curve over time
+
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df.set_index('timestamp', inplace=True)
+        # Count requests per minute
+        activity_over_time = df.resample('1T').size() 
+        fig, ax = plt.subplots()
+        ax.plot(activity_over_time.index, activity_over_time.values)
+        ax.set_title('API Activity Over Time')
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Number of Requests')
+        st.pyplot(fig)
 
         # Refresh every 5 seconds
         time.sleep(5)
