@@ -31,4 +31,5 @@ ruff==0.12.8
 
 # Data Analysis
 streamlit==1.45.1
-pandas==2.2.3
+pandas==2.3.3
+matplotlib==3.10.8
