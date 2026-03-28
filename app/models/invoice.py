@@ -32,5 +32,6 @@ class InvoiceItemModel(Base):
     quantity         = Column(Integer, nullable=False)
     unit_price_cents = Column(Integer, nullable=False)
     line_total_cents = Column(Integer, nullable=False)
+    created_at       = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     invoice = relationship('InvoiceModel', back_populates='items')
