@@ -22,13 +22,13 @@ class OrderModel(Base):
     __tablename__ = 'orders'
 
     id          = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    status      = Column(Enum(OrderStatus), nullable=False, default=OrderStatus.DRAFT)
+    status      = Column(Enum(OrderStatus), nullable=False, default=OrderStatus.DRAFT, index=True)
     total_cents = Column(Integer, nullable=False, default=0) 
-    currency    = Column(String, nullable=False)
-    customer_id = Column(String, nullable=False)
+    currency    = Column(String, nullable=False, default='EUR')
+    customer_id = Column(String, nullable=False, index=True)
     created_at  = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
-    items = relationship('OrderItemModel', back_populates='order')
+    items = relationship('OrderItemModel', back_populates='order', cascade='all, delete-orphan')
     invoices = relationship('InvoiceModel', back_populates='order')
 
 
@@ -42,5 +42,7 @@ class OrderItemModel(Base):
     quantity         = Column(Integer, nullable=False)
     unit_price_cents = Column(Integer, nullable=False)
     line_total_cents = Column(Integer, nullable=False)
+    created_at       = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     order = relationship('OrderModel', back_populates='items')
+    product = relationship('ProductModel', back_populates='order_items')
