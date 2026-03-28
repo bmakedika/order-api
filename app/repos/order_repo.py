@@ -45,3 +45,19 @@ def update_total(db: Session, order: OrderModel) -> OrderModel:
     db.commit()
     db.refresh(order)
     return order
+
+
+
+def get_item_by_product(db, order_id, product_id):
+    return db.query(OrderItemModel).filter_by(
+        order_id=order_id,
+        product_id=product_id
+    ).first()
+
+
+
+def save(db: Session, obj):
+    db.add(obj)
+    db.commit()
+    db.refresh(obj)
+    return obj
