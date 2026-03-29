@@ -14,8 +14,11 @@ class InvoiceItemResponse(BaseModel):
 class InvoiceResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: UUID
+    invoice_number: str
     order_id: UUID
+    id_payment: UUID
+    id_customer: UUID
     total_cents: int
-    currency: str
+    tax: int
     created_at: datetime
     items: List[InvoiceItemResponse] = []
