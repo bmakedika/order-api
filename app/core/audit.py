@@ -13,7 +13,7 @@ def performance_audit(func):
         if not os.path.exists(FILE_AUDIT):
             with open(FILE_AUDIT, mode='w', newline='') as f:
                 writer = csv.writer(f)
-                writer.writerow(['timestamp', 'endpoint', 'duration_ms', 'status_code'])
+                writer.writerow(['datetime', 'endpoint', 'duration_ms', 'status_code'])
         start_time = time.perf_counter()
         status_code = 200
 
@@ -27,9 +27,9 @@ def performance_audit(func):
             raise e 
         finally:
             duration = round((time.perf_counter() - start_time) * 1000, 2)
-            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
             with open(FILE_AUDIT, mode='a', newline='') as f:
                 writer = csv.writer(f)
-                writer.writerow([timestamp, func.__name__, duration, status_code])
+                writer.writerow([datetime, func.__name__, duration, status_code])
     return wrapper
