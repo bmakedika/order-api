@@ -1,8 +1,9 @@
 from sqlalchemy.orm import Session
-from uuid import UUID
+from uuid import UUID, uuid4
 from app.repos import order_repo
 from app.models.order import OrderStatus
 from app.core.redis_client import get_redis
+from app.services.invoice_service import create_invoice
 
 
 IDEMPOTENCY_TTL = 86400
@@ -11,7 +12,7 @@ IDEMPOTENCY_TTL = 86400
 def pay_order(db: Session, order_id: UUID, idempotency_key: str):
     redis = get_redis()
     
-    #
+    # check if the idempotency key has been used before
     cached = redis.get(f'idempotency:{idempotency_key}')
     if cached:
         return order_repo.get_by_id(db, order_id), 'already_processed'
@@ -33,6 +34,9 @@ def pay_order(db: Session, order_id: UUID, idempotency_key: str):
     db.commit()
     db.refresh(order)
 
+    # call create_invoice to generate an invoice linked to this payment 
+    
+    create_invoice(db, order, id_payment=uuid4())
 
     # cache the result in redis
     redis.set(f'idempotency:{idempotency_key}', 'paid', ex=IDEMPOTENCY_TTL)
