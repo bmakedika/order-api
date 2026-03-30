@@ -12,7 +12,7 @@ while True:
     with placeholder.container():
         st.title('Order API Live Monitoring Dashboard')
         df = pd.read_csv('audit_log.csv')
-        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df['datetime'] = pd.to_datetime(df['datetime'])
 
         col1, col2, col3 = st.columns(3)
 
@@ -34,7 +34,7 @@ while True:
 
         st.subheader('API Activity')
         # TODO: replace with st.line_chart when altair supports Python 3.14 
-        st.dataframe(df[['timestamp', 'endpoint', 'duration_ms', 'status_code']],
+        st.dataframe(df[['datetime', 'endpoint', 'duration_ms', 'status_code']],
                      use_container_width=True
         )
         
@@ -68,8 +68,8 @@ while True:
 
         # activity curve over time
 
-        df['timestamp'] = pd.to_datetime(df['timestamp'])
-        df.set_index('timestamp', inplace=True)
+        df['datetime'] = pd.to_datetime(df['datetime'])
+        df.set_index('datetime', inplace=True)
         # Count requests per minute
         activity_over_time = df.resample('1T').size() 
         fig, ax = plt.subplots()
