@@ -3,6 +3,7 @@ from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from datetime import datetime, timezone
 from app.core.database import Base
 import uuid
+from sqlalchemy.orm import relationship
 
 
 class ProductModel(Base):
@@ -16,3 +17,5 @@ class ProductModel(Base):
     category    = Column(String, nullable=False)
     is_active   = Column(Boolean, default=True, nullable=False)
     created_at  = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    order_items = relationship('OrderItemModel', back_populates='product')
