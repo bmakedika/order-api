@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from uuid import uuid4
 from datetime import datetime, timezone
-from app.models.invoice import InvoiceModel
+from app.models.invoice import InvoiceModel, InvoiceItemModel
 
 def create_invoice(db: Session, order, id_payment):
     # generate a unique invoice number using uuid4 
@@ -20,6 +20,18 @@ def create_invoice(db: Session, order, id_payment):
         created_at=datetime.now(timezone.utc)
     )
     db.add(invoice)
+    
+    for item in order.items:
+        invoice_item = InvoiceItemModel(
+            id=uuid4(),
+            invoice_id=invoice.id,
+            product_id=item.product_id,
+            quantity=item.quantity,
+            unit_price_cents=item.unit_price_cents,
+            line_total_cents=item.quantity * item.unit_price_cents
+        )
+        db.add(invoice_item)
+
     db.commit()
     db.refresh(invoice)
     return invoice
