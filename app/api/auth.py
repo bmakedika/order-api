@@ -21,7 +21,7 @@ def register(body: UserRegister, db: Session = Depends(get_db)):
 def login(body: UserLogin, db: Session = Depends(get_db)):
     user = user_service.login_user(db, email=body.email, password=body.password)
 
-    token = create_access_token(username=user.username, role=user.role)
+    token = create_access_token(username=user.email, role=user.role)
     return {
         'access_token': token,
         'token_type': 'bearer'
