@@ -1,24 +1,34 @@
-from fastapi import APIRouter, HTTPException
-from app.schemas.auth import LoginRequest, TokenResponse
-from app.core.fake_users import FAKE_USERS
-from app.core.security import verify_password
-from app.core.auth import create_access_token
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from app.core.database import get_db
+from app.core.auth import create_access_token, require_user
+from app.schemas.auth import TokenResponse
+from app.schemas.user import UserRegister, UserLogin, UserResponse
+from app.services import user_service
+from app.repos.user_repo import get_by_email
+
 
 router = APIRouter()
 
-@router.post('/auth/login', response_model=TokenResponse)
-def login(body: LoginRequest):
-    
-    user = FAKE_USERS.get(body.username)
-    if not user :
-        raise HTTPException(status_code=401, detail='Invalid Credentials')
-    
-    if not verify_password(body.password, user['hashed_password']):
-        raise HTTPException(status_code=401, detail='Invalid Credentials')
-    
-    token = create_access_token(
-        username=user['username'],
-        role=user['role']
-    )
+# register
+@router.post('/auth/register', response_model=UserResponse)
+def register(body: UserRegister, db: Session = Depends(get_db)):
+    user = user_service.register_user(db, username=body.username, email=body.email, password=body.password)
+    return user
 
-    return TokenResponse(access_token=token)
+# create_access_token in login endpoint
+@router.post('/auth/login', response_model=TokenResponse)
+def login(body: UserLogin, db: Session = Depends(get_db)):
+    user = user_service.login_user(db, email=body.email, password=body.password)
+
+    token = create_access_token(username=user.username, role=user.role)
+    return {
+        'access_token': token,
+        'token_type': 'bearer'
+    }
+
+# get current user info
+@router.get('/auth/me', response_model=UserResponse)
+def me(payload = Depends(require_user), db: Session = Depends(get_db)):
+    user = get_by_email(db, email=payload['sub'])
+    return user
