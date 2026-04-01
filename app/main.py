@@ -3,7 +3,7 @@ from fastapi.security import HTTPBearer
 from app.api import products, auth, orders, invoices
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title='Order API', version='0.1.0')
+app = FastAPI(title='Order API', version='0.2.0')
 
 security = HTTPBearer()
 
