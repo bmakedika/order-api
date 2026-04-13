@@ -7,6 +7,7 @@ import csv
 import os
 from datetime import datetime
 from app.core.redis_client import get_redis
+from fastapi.responses import JSONResponse
 
 app = FastAPI(title='Order API', version='0.2.0')
 
@@ -72,7 +73,7 @@ async def rate_limit_middleware(request : Request, call_next):
     # 2. limit deping on the endpoint
     path = request.url.path
     
-    # limit to 5 login attempts per hour
+    # limit to 5 login attempts per minute
     if path =='/auth/login':
         key = f"rate_limit:login:{client_ip}"
         limit = 5 
@@ -93,9 +94,14 @@ async def rate_limit_middleware(request : Request, call_next):
 
     # 4. if counter > limit 429 Too Many Requests
     if current_count > limit:
-        raise HTTPException(status_code=429, detail='Too many requests. Please try again later.')
+        return JSONResponse(
+            status_code=429,
+            content={'detail': 'Too many requests. Please try again later.'}
+        )
+    
     if current_count == 1:
-        redis.expire(key, 60)  # Set expiry to 60 seconds (1 minute)
+        # Set expiry to 60 seconds (1 minute)
+        redis.expire(key, 60)  
     return await call_next(request)
 
 
