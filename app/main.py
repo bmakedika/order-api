@@ -6,6 +6,7 @@ import time
 import csv
 import os
 from datetime import datetime
+from app.core.redis_client import get_redis
 
 app = FastAPI(title='Order API', version='0.2.0')
 
@@ -59,6 +60,44 @@ async def logging_middleware(request : Request, call_next):
         with open('audit_log.csv', mode='a', newline='') as f:
             writer = csv.writer(f)
             writer.writerow([requested_at, endpoint_name, duration_ms, status_code])
+
+
+@app.middleware('http')
+async def rate_limit_middleware(request : Request, call_next):
+    redis = get_redis()
+
+    # 1. get client IP
+    client_ip = request.client.host
+    
+    # 2. limit deping on the endpoint
+    path = request.url.path
+    
+    # limit to 5 login attempts per hour
+    if path =='/auth/login':
+        key = f"rate_limit:login:{client_ip}"
+        limit = 5 
+    
+    # limit to 10 registration attempts per hour
+    elif path == '/auth/register':
+        key = f"rate_limit:register:{client_ip}"
+        limit = 10  
+
+    # limit to 60 requests per hour 
+    else:
+        key = f"rate_limit:general:{client_ip}"
+        limit = 60  
+    
+    # 3. Increment the Redis counter and set expiry if it's a new key
+    
+    current_count = redis.incr(key)
+
+    # 4. if counter > limit 429 Too Many Requests
+    if current_count > limit:
+        raise HTTPException(status_code=429, detail='Too many requests. Please try again later.')
+    if current_count == 1:
+        redis.expire(key, 60)  # Set expiry to 60 seconds (1 minute)
+    return await call_next(request)
+
 
 @app.get("/")
 def home():
