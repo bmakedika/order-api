@@ -15,14 +15,6 @@ jobs:
         ports:
           - 6379:6379
 
-    env:
-      # Test uses SQLite and Redis is required for rate limiting + refresh tokens storage
-      REDIS_URL: redis://localhost:6379
-      SECRET_KEY: ci-secret-key
-      ALGORITHM: HS256
-      TOKEN_EXPIRE_MINUTES: "30"
-      REFRESH_TOKEN_EXPIRE_DAYS: "30"
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,24 +29,24 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: wait for Redis
+      - name: Wait for Redis
         run: |
           python - <<'PY'
           import os, time
           import redis
 
-          url = os.getenv('REDIS_URL', 'redis://localhost:6379')
-          r = redis.redis.from_url(url, decode_responses=True)
+          url = os.environ.get('REDIS_URL', 'redis://localhost:6379')
+          r = redis.Redis.from_url(url, decode_responses=True)
 
           for i in range(60):
               try:
                   if r.ping():
-                      print("Redis is ready!")
+                      print('Redis is ready')
                       break
-              except Exception as e:
+              except Exception:
                   time.sleep(1)
           else:
-              raise SystemExit("Redis did not become ready in time")
+              raise SystemExit('Redis did not become ready in time')
           PY
 
       - name: Run tests
