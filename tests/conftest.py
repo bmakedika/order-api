@@ -19,8 +19,8 @@ TestingSessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=Fals
 
 # override get_db dependency
 def override_get_db():
+    db = TestingSessionLocal()
     try:
-        db = TestingSessionLocal()
         yield db
     finally:
         db.close()
@@ -28,27 +28,36 @@ def override_get_db():
 
 # override auth dependencies
 def override_require_admin():
-    return {'sub': 'admin', 'role': 'admin'}
+    return {"sub": "admin@example.com", "role": "admin"}
 
 def override_require_user():
-    return {'sub': 'user', 'role': 'user'}
+    # IMPORTANT: sub doit être un email si ton code utilise get_by_email(payload["sub"])
+    return {"sub": "user@example.com", "role": "user"}
 
-
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def client():
-    # create tables
     Base.metadata.create_all(bind=engine)
-
-    # flush Redis before each test
     get_redis().flushdb()
 
-    # override dependencies
+    app.dependency_overrides[get_db] = override_get_db
+    # on peut garder admin override si tu veux, mais pas nécessaire
+    # app.dependency_overrides[require_admin] = override_require_admin
+
+    yield TestClient(app)
+
+    Base.metadata.drop_all(bind=engine)
+    app.dependency_overrides = {}
+
+@pytest.fixture(scope="function")
+def client_auth():
+    Base.metadata.create_all(bind=engine)
+    get_redis().flushdb()
+
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[require_admin] = override_require_admin
     app.dependency_overrides[require_user] = override_require_user
 
     yield TestClient(app)
 
-    # clean up
     Base.metadata.drop_all(bind=engine)
     app.dependency_overrides = {}
