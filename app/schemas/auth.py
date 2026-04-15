@@ -7,10 +7,6 @@ class LoginRequest(basemodel):
 
 class TokenResponse(basemodel):
     access_token: str
-    token_type: str = 'bearer'
-
-class TokenResponse(basemodel):
-    access_token: str
     refresh_token: str
     token_type: str = 'bearer'
 
