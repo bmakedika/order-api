@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, Header
+import time
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.auth import create_access_token, create_refresh_token, decode_token
@@ -8,6 +9,8 @@ from app.schemas.user import UserRegister, UserLogin, UserResponse
 from app.services import user_service
 from app.repos.user_repo import get_by_email
 from app.core.config import REFRESH_TOKEN_EXPIRE_DAYS
+from app.core.token_blacklist import blacklist_jti
+from app.core.auth import decode_token
 
 
 router = APIRouter()
@@ -93,7 +96,13 @@ def refresh(
     }
 
 @router.post('/auth/logout')
-def logout(request: Request, response: Response, body: LogoutRequest | None = None):
+def logout(
+    request: Request,
+    response: Response,
+    authorization: str | None = Header(default=None),
+    body: LogoutRequest | None = None
+    ):
+    # 1. Revoke refresh token
     cookie_token = request.cookies.get(REFRESH_COOKIE_NAME)
     body_token = body.refresh_token if body else None
     refresh_token = body_token or cookie_token
@@ -102,4 +111,19 @@ def logout(request: Request, response: Response, body: LogoutRequest | None = No
         revoke_refresh_token(refresh_token)
     
     clear_refresh_cookie(response)
+
+    # 2. Blacklist access token jti
+    if authorization and authorization.startswith('Bearer '):
+        access_token = authorization.removeprefix('Bearer ').strip()
+        payload = decode_token(access_token)
+
+        if payload.get('type') == 'access':
+            jti = payload.get('jti')
+            # exp is numeric timestamp (from jose)
+            exp = payload.get('exp')
+            if jti and exp:
+                ttl = int(exp -time.time())
+                if ttl > 0:
+                    blacklist_jti(jti, ttl_seconds=ttl)
+
     return {'detail': 'Logged out successfully'}
