@@ -12,7 +12,7 @@ from app.core.config import (
     JWT_ISSUER,
     JWT_AUDIENCE,
 )
-from app.core.token_blacklist import is_token_blacklisted
+from app.core.token_blacklist import is_jti_blacklisted
 
 
 security = HTTPBearer()
@@ -80,7 +80,7 @@ def require_admin(credentials=Depends(security)):
         raise HTTPException(status_code=401, detail='Invalid token type')
     
     jti = payload.get('jti')
-    if jti and is_token_blacklisted(jti):
+    if jti and is_jti_blacklisted(jti):
         raise HTTPException(status_code=401, detail='Token has been revoked')
     
     if payload.get("role") != 'admin':
@@ -95,6 +95,6 @@ def require_user(credentials=Depends(security)):
         raise HTTPException(status_code=401, detail='Invalid token type')
     
     jti = payload.get('jti')
-    if jti and is_token_blacklisted(jti):
+    if jti and is_jti_blacklisted(jti):
         raise HTTPException(status_code=401, detail='Token has been revoked')
     return payload
