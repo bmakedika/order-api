@@ -23,6 +23,11 @@ jobs:
       TOKEN_EXPIRE_MINUTES: "30"
       REFRESH_TOKEN_EXPIRE_DAYS: "30"
 
+      ACCESS_SECRET_KEY: ci-access-secret-key
+      REFRESH_SECRET_KEY: ci-refresh-secret-key
+      JWT_ISSUER: order-api
+      JWT_AUDIENCE: order-api-client
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
