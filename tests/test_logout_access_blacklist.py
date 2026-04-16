@@ -9,7 +9,7 @@ def test_logout_revokes_access_token_via_blacklist(client):
         'email': 'blkuser@example.com',
         'password': 'pw'
     })
-    access = login.json['access_token']
+    access = login.json()['access_token']
 
     # call a protected endpoint Ok
     ok = client.get('/users/me', headers={'Authorization': f'Bearer {access}'})
