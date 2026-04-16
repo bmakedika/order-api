@@ -2,8 +2,17 @@ from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer
-from app.core.config import SECRET_KEY, ALGORITHM, TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
 import uuid
+from app.core.config import (
+    ACCESS_SECRET_KEY,
+    REFRESH_SECRET_KEY, 
+    ALGORITHM,
+    TOKEN_EXPIRE_MINUTES,
+    REFRESH_TOKEN_EXPIRE_DAYS,
+    JWT_ISSUER,
+    JWT_AUDIENCE,
+)
+from app.core.token_blacklist import is_token_blacklisted
 
 
 security = HTTPBearer()
@@ -12,38 +21,80 @@ security = HTTPBearer()
 def create_access_token(subject: str, role: str) -> str:
     now = datetime.now(timezone.utc)
     payload = {
-        "sub": subject,
-        "role": role,
-        "type": "access",
-        "iat": int(now.timestamp()),
-        "jti": str(uuid.uuid4()),
-        "exp": now + timedelta(minutes=TOKEN_EXPIRE_MINUTES),
+        'sub': subject,
+        'role': role,
+        'type': 'access',
+        'iss': JWT_ISSUER,
+        'aud': JWT_AUDIENCE,
+        'iat': int(now.timestamp()),
+        'jti': str(uuid.uuid4()),
+        'exp': now + timedelta(minutes=TOKEN_EXPIRE_MINUTES),
     }
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(payload, ACCESS_SECRET_KEY, algorithm=ALGORITHM)
+
 
 def create_refresh_token(subject: str, role: str) -> str:
     now = datetime.now(timezone.utc)
     payload = {
-        "sub": subject,
-        "role": role,
-        "type": "refresh",
-        "iat": int(now.timestamp()),
-        "jti": str(uuid.uuid4()),
-        "exp": now + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
+        'sub': subject,
+        'role': role,
+        'type': 'refresh',
+        'iss': JWT_ISSUER,
+        'aud': JWT_AUDIENCE,
+        'iat': int(now.timestamp()),
+        'jti': str(uuid.uuid4()),
+        'exp': now + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
     }
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(payload, REFRESH_SECRET_KEY, algorithm=ALGORITHM)
+
 
 def decode_token(token: str) -> dict:
+    # First decode without verification to detect type and choose key
     try:
-        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        unverified = jwt.get_unverified_claims(token)
+    except Exception:
+        raise HTTPException(status_code=401, detail='Invalid or expired token')
+    
+    token_type = unverified.get('type')
+    if token_type == 'refresh':
+        key = REFRESH_SECRET_KEY
+    else:
+        key = ACCESS_SECRET_KEY
+    
+    try:
+        return jwt.decode(
+            token,
+            key,
+            algorithms=[ALGORITHM],
+            issuer=JWT_ISSUER,
+            audience=JWT_AUDIENCE,
+        )
     except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        raise HTTPException(status_code=401, detail='Invalid or expired token')
+
 
 def require_admin(credentials=Depends(security)):
     payload = decode_token(credentials.credentials)
-    if payload.get("role") != "admin":
-        raise HTTPException(status_code=403, detail="Forbidden")
+    
+    if payload.get('type') != 'access':
+        raise HTTPException(status_code=401, detail='Invalid token type')
+    
+    jti = payload.get('jti')
+    if jti and is_token_blacklisted(jti):
+        raise HTTPException(status_code=401, detail='Token has been revoked')
+    
+    if payload.get("role") != 'admin':
+        raise HTTPException(status_code=403, detail='Forbidden')
     return payload
 
+
 def require_user(credentials=Depends(security)):
-    return decode_token(credentials.credentials)
+    payload = decode_token(credentials.credentials)
+
+    if payload.get('type') != 'access':
+        raise HTTPException(status_code=401, detail='Invalid token type')
+    
+    jti = payload.get('jti')
+    if jti and is_token_blacklisted(jti):
+        raise HTTPException(status_code=401, detail='Token has been revoked')
+    return payload
