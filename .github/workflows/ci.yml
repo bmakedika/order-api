@@ -47,10 +47,21 @@ jobs:
           docker run -d \
             --name redis-ci \
             -p 6379:6379 \
-            redis:7.2
+            redis:7.2 \
+            redis-server \
+            --save "" \
+            --appendonly no \
+            --dir /tmp
 
           docker ps -a
           docker logs --details redis-ci || true
+
+      - name: Smoke check Redis in container
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec redis-ci redis-cli ping
+          docker exec redis-ci redis-cli INFO server | head -n 50
 
       - name: Wait for Redis (tcp + redis-cli)
         shell: bash
