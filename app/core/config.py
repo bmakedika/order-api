@@ -19,6 +19,12 @@ JWT_AUDIENCE = getenv('JWT_AUDIENCE', 'order-api-client')
 TOKEN_EXPIRE_MINUTES = int(getenv('TOKEN_EXPIRE_MINUTES', '30'))
 REFRESH_TOKEN_EXPIRE_DAYS = int(getenv('REFRESH_TOKEN_EXPIRE_DAYS', '30'))
 
+# Auth cookie / refresh response behavior (NEW)
+
+AUTH_COOKIE_SECURE = getenv('AUTH_COOKIE_SECURE', 'false').lower() == 'true'
+AUTH_COOKIE_SAMESITE = getenv('AUTH_COOKIE_SAMESITE', 'lax')  # 'lax' | 'strict' | 'none'
+RETURN_REFRESH_TOKEN_IN_BODY = getenv('RETURN_REFRESH_TOKEN_IN_BODY', 'false').lower() == 'true'
+
 # Backward-comptablitiy (optional): keep old name if used elswhere
 
 SECRET_KEY = getenv('SECRET_KEY', 'change-me-in-production')
