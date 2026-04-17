@@ -55,7 +55,7 @@ jobs:
           echo "Waiting for Redis at 127.0.0.1:6379..."
 
           for i in {1..120}; do
-            OUT="$(redis-cli -h 127.0.0.1 -p 6379 ping 2>&1 || true)"
+            OUT="$(redis-cli -h 127.0.0.1 -p 6379 ping 2>&1 || echo "__REDIS_CLI_FAILED__")"
             echo "Attempt $i: ${OUT}"
 
             if [ "${OUT}" = "PONG" ]; then
@@ -68,6 +68,30 @@ jobs:
 
           echo "Redis did not become ready in time"
           exit 1
+
+      - name: Debug Redis service container (on failure)
+        if: failure()
+        shell: bash
+        run: |
+          set -x
+          docker ps -a
+
+          echo "---- redis containers ----"
+          docker ps -a --filter "ancestor=redis:7-alpine"
+
+          CID="$(docker ps -aq --filter "ancestor=redis:7-alpine" | head -n 1)"
+          echo "CID=$CID"
+
+          if [ -n "$CID" ]; then
+            echo "---- docker inspect ----"
+            docker inspect "$CID" || true
+
+            echo "---- docker logs ----"
+            docker logs --details "$CID" || true
+          fi
+
+          echo "---- listening ports ----"
+          ss -lntp || true
 
       - name: Run tests
         run: |
