@@ -39,6 +39,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6.0.1
 
+      - name: Debug Redis service early
+        shell: bash
+        run: |
+          set -x
+          docker ps -a
+          CID="$(docker ps -aq --filter "ancestor=redis:7-alpine" | head -n 1 || true)"
+          echo "CID=$CID"
+          if [ -n "$CID" ]; then
+            docker inspect -f 'state={{json .State}} restart={{.RestartCount}} health={{json .State.Health}}' "$CID" || true
+            docker logs --tail 200 "$CID" || true
+            docker exec "$CID" sh -lc 'uname -a; ps aux; (ss -lntp || netstat -lntp || true); (redis-cli ping || true)' || true
+          fi
+
       - name: Set up Python
         uses: actions/setup-python@v6.1.0
         with:
@@ -63,10 +76,9 @@ jobs:
           echo "Waiting for Redis at 127.0.0.1:6379..."
 
           for i in {1..60}; do
-            TCP="$(nc -vz 127.0.0.1 6379 2>&1 || true)"
-            CLI="$(redis-cli -h 127.0.0.1 -p 6379 ping 2>&1 || true)"
-            echo "Attempt $i: tcp='${TCP}' redis-cli='${CLI}'"
+            echo "Attempt $i: $(date -Is) tcp=$(nc -vz 127.0.0.1 6379 2>&1 | tail -n 1) cli=$(redis-cli -h 127.0.0.1 -p 6379 ping 2>&1 | tail -n 1)"
 
+            CLI="$(redis-cli -h 127.0.0.1 -p 6379 ping 2>&1 || true)"
             if [ "${CLI}" = "PONG" ]; then
               echo "Redis is ready"
               exit 0
@@ -91,7 +103,7 @@ jobs:
           if [ -n "$CID" ]; then
             docker inspect "$CID" || true
             docker logs --details "$CID" || true
-            docker exec "$CID" sh -lc 'redis-cli ping || true; ps aux || true; ss -lntp || true' || true
+            docker exec "$CID" sh -lc 'uname -a; ps aux; (ss -lntp || netstat -lntp || true); (redis-cli ping || true)' || true
           fi
 
           ss -lntp || true
