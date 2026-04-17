@@ -1,7 +1,21 @@
-# Order API
+# Order API (FastAPI)
 
-A production-like REST API built with FastAPI, PostgreSQL, and Redis.  
-Designed as a portfolio project showcasing clean architecture, JWT authentication, and idempotent payments.
+A production-like REST API built with **FastAPI**, **PostgreSQL**, and **Redis**.  
+Designed as a portfolio project showcasing **clean architecture**, **JWT authentication**, and **idempotent payments**.
+
+- Interactive docs: `http://127.0.0.1:8000/docs`
+- OpenAPI schema: `http://127.0.0.1:8000/openapi.json`
+
+---
+
+## Features
+
+- JWT Bearer authentication (admin/user roles)
+- Products CRUD (admin) + list & detail (public)
+- Orders lifecycle: create draft, add/remove items, pay
+- Idempotent payments via `Idempotency-Key` (Redis-backed)
+- Database migrations with Alembic
+- Automated tests with pytest
 
 ---
 
@@ -12,14 +26,14 @@ Designed as a portfolio project showcasing clean architecture, JWT authenticatio
 - **SQLAlchemy** — ORM
 - **Alembic** — database migrations
 - **Redis** — idempotency key storage
-- **Docker** — containerized services
+- **Docker / Docker Compose** — containerized services
 - **pytest** — automated tests
 
 ---
 
 ## Project Structure
 
-```
+```text
 app/
 ├── api/          # endpoints (products, orders, auth)
 ├── core/         # config, auth, security, database, redis
@@ -32,16 +46,16 @@ app/
 
 ---
 
-## Getting Started
+## Getting Started (Local Dev)
 
-### 1. Clone the repository
+### 1) Clone the repository
 
 ```bash
 git clone https://github.com/bmakedika/order-api-python.git
 cd order-api-python
 ```
 
-### 2. Create and activate virtual environment
+### 2) Create and activate a virtual environment
 
 ```bash
 python -m venv .venv
@@ -49,54 +63,71 @@ python -m venv .venv
 source .venv/bin/activate   # Linux/Mac
 ```
 
-### 3. Install dependencies
+### 3) Install dependencies
 
 ```bash
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 4. Configure environment variables
+### 4) Configure environment variables
 
 ```bash
 cp .env.example .env
 # Edit .env with your values
 ```
 
-> **Tip:** Use a simple password without special characters (e.g. `secret`) in `POSTGRES_PASSWORD` and `DATABASE_URL` to avoid encoding issues.
+Notes:
 
-> **Note (Linux/WSL):** Replace `localhost` with `127.0.0.1` in `DATABASE_URL`.
-> If your password contains special characters (e.g. `@`), encode them in the URL:
-> `@` → `%40`, `!` → `%21`
+- **Tip:** Use a simple password without special characters (e.g. `secret`) in `POSTGRES_PASSWORD` and `DATABASE_URL` to avoid URL encoding issues.
+- **Linux/WSL note:** If you run into connection issues, try replacing `localhost` with `127.0.0.1` in `DATABASE_URL`.
+- If your password contains special characters (e.g. `@`), encode them in the URL (`@` → `%40`, `!` → `%21`, etc.).
 
-### 5. Start Docker services
+### 5) Start infrastructure (PostgreSQL + Redis)
 
 ```bash
 docker-compose up -d
 ```
 
-### 6. Run database migrations
+### 6) Run database migrations
 
 ```bash
 alembic upgrade head
 ```
 
-> **Note:** If `alembic upgrade head` fails with a password error, your Docker volume
-> may contain an old password. Reset it with:
->
-> ```bash
-> docker-compose down -v
-> docker-compose up -d
-> ```
->
-> ⚠️ This deletes all existing data in the database.
+If migrations fail due to a password mismatch, your Docker volume may contain old credentials. Reset volumes:
 
-### 7. Start the server
+```bash
+docker-compose down -v
+docker-compose up -d
+```
+
+> ⚠️ This deletes all existing database data.
+
+### 7) Start the API
 
 ```bash
 uvicorn app.main:app --reload --env-file .env
 ```
 
-Visit **http://127.0.0.1:8000/docs** for the Swagger UI.
+Open: `http://127.0.0.1:8000/docs`
+
+---
+
+## Common Commands
+
+Run tests:
+
+```bash
+pytest -v
+```
+
+(Re)start infrastructure:
+
+```bash
+docker-compose down
+docker-compose up -d
+```
 
 ---
 
@@ -135,17 +166,17 @@ Visit **http://127.0.0.1:8000/docs** for the Swagger UI.
 The API uses **JWT Bearer tokens**.
 
 ```bash
-# 1. Login
+# 1) Login
 curl -X POST http://localhost:8000/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username": "admin", "password": "admin-secret"}'
 
-# 2. Use the token
+# 2) Use the token
 curl http://localhost:8000/products \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-**Mock credentials:**
+Mock credentials:
 
 | Username | Password     | Role  |
 | -------- | ------------ | ----- |
@@ -156,7 +187,7 @@ curl http://localhost:8000/products \
 
 ## Idempotent Payments
 
-The `/pay` endpoint uses an `Idempotency-Key` header to prevent double charges.
+The `/pay` endpoint supports an `Idempotency-Key` header to prevent double charges.
 
 ```bash
 curl -X POST http://localhost:8000/orders/{id}/pay \
@@ -165,16 +196,6 @@ curl -X POST http://localhost:8000/orders/{id}/pay \
 ```
 
 Calling `/pay` multiple times with the same key returns the same response without re-charging.
-
----
-
-## Running Tests
-
-```bash
-pytest -v
-```
-
-Expected output: **12 passed**
 
 ---
 
