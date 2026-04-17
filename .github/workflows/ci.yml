@@ -82,11 +82,11 @@ jobs:
 
           for i in {1..60}; do
             OUT="$(docker exec redis-ci redis-cli ping 2>&1 || true)"
-            OUT_CLEAN="$(printf '%s' "$OUT" | tr -d '\r\n')"
+            OUT="$(printf '%s' "$OUT" | tr -d '\r\n')"
 
-            echo "Attempt $i: ping='$OUT_CLEAN'"
+            echo "Attempt $i: ping='$OUT'"
 
-            if [ "$OUT_CLEAN" = "PONG" ]; then
+            if [ "$OUT" = "PONG" ]; then
               echo "Redis is ready"
               exit 0
             fi
