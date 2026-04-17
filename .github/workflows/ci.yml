@@ -1,3 +1,5 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
 name: CI
 
 on:
@@ -14,7 +16,17 @@ jobs:
         image: redis:7-alpine
         ports:
           - 6379:6379
-        options: '--health-cmd="redis-cli ping" --health-interval=2s --health-timeout=5s --health-retries=60'
+        command: >-
+          redis-server
+          --save ""
+          --appendonly no
+          --bind 0.0.0.0
+          --protected-mode no
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 60
 
     env:
       DATABASE_URL: sqlite:///./ci.db
@@ -56,7 +68,7 @@ jobs:
           set -euo pipefail
           echo "Waiting for Redis at 127.0.0.1:6379..."
 
-          for i in {1..30}; do
+          for i in {1..60}; do
             OUT="$(redis-cli -h 127.0.0.1 -p 6379 ping 2>&1 || echo "__REDIS_CLI_FAILED__")"
             echo "Attempt $i: ${OUT}"
 
@@ -77,24 +89,15 @@ jobs:
         shell: bash
         run: |
           set -x
-          echo "---- docker ps -a ----"
           docker ps -a || true
-
-          echo "---- redis containers ----"
-          docker ps -a --filter "ancestor=redis:7-alpine" || true
 
           CID="$(docker ps -aq --filter "ancestor=redis:7-alpine" | head -n 1 || true)"
           echo "CID=$CID"
-
           if [ -n "$CID" ]; then
-            echo "---- docker inspect ----"
             docker inspect "$CID" || true
-
-            echo "---- docker logs ----"
             docker logs --details "$CID" || true
           fi
 
-          echo "---- listening ports ----"
           ss -lntp || true
 
       - name: Fail if Redis was not ready
