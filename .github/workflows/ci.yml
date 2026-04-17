@@ -13,7 +13,7 @@ jobs:
 
     services:
       redis:
-        image: redis:7-alpine
+        image: redis:7.2
         ports:
           - "6379:6379"
 
@@ -50,6 +50,8 @@ jobs:
           pip install -r requirements.txt
 
       - name: Wait for Redis (tcp + redis-cli)
+        id: wait_redis
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -67,7 +69,30 @@ jobs:
           done
 
           echo "Redis did not become ready in time"
+          exit 1
+
+      - name: Debug Redis service container (always)
+        if: always()
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -x
           docker ps -a || true
+
+          CID="$(docker ps -aq --filter "ancestor=redis:7.2" | head -n 1 || true)"
+          echo "CID=$CID"
+          if [ -n "$CID" ]; then
+            docker inspect "$CID" || true
+            docker logs --details "$CID" || true
+            docker port "$CID" || true
+          fi
+
+          ss -lntp || true
+
+      - name: Fail if Redis was not ready
+        if: steps.wait_redis.outcome != 'success'
+        run: |
+          echo "Redis was not ready; failing the job."
           exit 1
 
       - name: Run tests
