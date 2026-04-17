@@ -11,12 +11,6 @@ jobs:
   tests:
     runs-on: ubuntu-latest
 
-    services:
-      redis:
-        image: redis:7.2
-        ports:
-          - "6379:6379"
-
     env:
       DATABASE_URL: sqlite:///./ci.db
       REDIS_URL: redis://127.0.0.1:6379
@@ -44,14 +38,21 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y redis-tools netcat-openbsd
 
-      - name: Install Python dependencies
+      - name: Start Redis (docker run)
+        shell: bash
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          set -euo pipefail
+          docker rm -f redis-ci >/dev/null 2>&1 || true
+
+          docker run -d \
+            --name redis-ci \
+            -p 6379:6379 \
+            redis:7.2
+
+          docker ps -a
+          docker logs --details redis-ci || true
 
       - name: Wait for Redis (tcp + redis-cli)
-        id: wait_redis
-        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -59,42 +60,32 @@ jobs:
 
           for i in {1..60}; do
             echo "Attempt $i: $(date -Is) tcp=$(nc -vz 127.0.0.1 6379 2>&1 | tail -n 1) cli=$(redis-cli -h 127.0.0.1 -p 6379 ping 2>&1 | tail -n 1)"
-
             if [ "$(redis-cli -h 127.0.0.1 -p 6379 ping 2>/dev/null || true)" = "PONG" ]; then
               echo "Redis is ready"
               exit 0
             fi
-
             sleep 1
           done
 
           echo "Redis did not become ready in time"
+          echo "---- docker logs redis-ci ----"
+          docker logs --details redis-ci || true
+          echo "---- docker inspect redis-ci ----"
+          docker inspect redis-ci || true
           exit 1
 
-      - name: Debug Redis service container (always)
-        if: always()
-        continue-on-error: true
-        shell: bash
+      - name: Install Python dependencies
         run: |
-          set -x
-          docker ps -a || true
-
-          CID="$(docker ps -aq --filter "ancestor=redis:7.2" | head -n 1 || true)"
-          echo "CID=$CID"
-          if [ -n "$CID" ]; then
-            docker inspect "$CID" || true
-            docker logs --details "$CID" || true
-            docker port "$CID" || true
-          fi
-
-          ss -lntp || true
-
-      - name: Fail if Redis was not ready
-        if: steps.wait_redis.outcome != 'success'
-        run: |
-          echo "Redis was not ready; failing the job."
-          exit 1
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
       - name: Run tests
         run: |
           pytest -v
+
+      - name: Stop Redis (always)
+        if: always()
+        continue-on-error: true
+        run: |
+          docker logs --details redis-ci || true
+          docker rm -f redis-ci || true
