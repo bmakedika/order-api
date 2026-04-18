@@ -5,7 +5,6 @@ from app.core.database import get_db
 from app.core.auth import require_user, require_admin
 from app.schemas.order import OrderCreate, OrderItemAdd, OrderResponse, OrderStatusUpdate
 from app.services import order_service
-from app.core.audit import performance_audit
 
 
 router = APIRouter()

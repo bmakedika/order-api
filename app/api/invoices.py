@@ -6,7 +6,6 @@ from app.core.auth import require_user, require_admin
 from app.core.database import get_db
 from app.models.invoice import InvoiceModel as Invoice
 from app.schemas.invoice import InvoiceResponse
-from app.core.audit import performance_audit
 
 router = APIRouter()
 

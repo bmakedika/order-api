@@ -6,7 +6,6 @@ from app.core.auth import require_admin
 from app.core.database import get_db
 from app.services import product_service
 from sqlalchemy.orm import Session
-from app.core.audit import performance_audit
 
 
 router = APIRouter()
