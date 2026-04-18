@@ -6,12 +6,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import auth, products, orders, invoices, users
 from app.core.redis_client import get_redis
 from app.core.middlewares.audit import AuditLoggingMiddleware
+from app.core.metrics.prometheus import register_prometheus
 
 
 app = FastAPI(title='Order API', version='0.2.0')
 
 # Audit logging (writes audit_log.csv for the Streamlit dashboard)
 app.add_middleware(AuditLoggingMiddleware, audit_csv_path='audit_log.csv')
+
+# Prometheus metrics endpoints + middleware
+register_prometheus(app)
 
 security = HTTPBearer()
 
