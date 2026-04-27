@@ -3,6 +3,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.auth import require_user, require_admin
+from app.repos.user_repo import get_by_email
 from app.schemas.order import OrderCreate, OrderItemAdd, OrderResponse, OrderStatusUpdate
 from app.services import order_service
 
@@ -13,22 +14,26 @@ router = APIRouter()
 @router.post('/orders', response_model=OrderResponse)
 def create_order(
     data: OrderCreate,
-    _= Depends(require_user),
+    payload = Depends(require_user),
     db: Session = Depends(get_db)
 ):
-    return order_service.create_order(db, data)
+    user = get_by_email(db, email=payload['sub'])
+    return order_service.create_order(db, data, user_id=user.id)
 
 
 
 @router.get('/orders/{order_id}', response_model=OrderResponse)
 def get_order(
     order_id: UUID,
-    _= Depends(require_user),
+    payload = Depends(require_user),
     db: Session = Depends(get_db)
 ):
+    user = get_by_email(db, email=payload['sub'])
     order = order_service.get_order(db, order_id)
     if not order:
         raise HTTPException(status_code=404, detail='Order not found')
+    if order.user_id != user.id:
+        raise HTTPException(status_code=403, detail='Forbidden')
     return order
 
 
