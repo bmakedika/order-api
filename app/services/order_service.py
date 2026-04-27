@@ -6,9 +6,10 @@ from app.schemas.order import OrderCreate, OrderItemAdd
 from app.models.order import OrderStatus
 
 
-def create_order(db: Session, data: OrderCreate):
+def create_order(db: Session, data: OrderCreate, user_id: UUID):
     return order_repo.create(db, {
         'id': uuid4(),
+        'user_id': user_id,
         'customer_id': data.customer_id,
         'currency': data.currency,
         'status': OrderStatus.DRAFT,
