@@ -2,7 +2,7 @@
 
 > Backoffice et API REST headless de gestion e-commerce — sécurisée, observable et orientée données.
 
-[![CI](https://github.com/bmakedika/order-api-python/actions/workflows/tests.yml/badge.svg)](https://github.com/bmakedika/order-api-python/actions)
+[![CI](https://github.com/bmakedika/order-api/actions/workflows/tests.yml/badge.svg)](https://github.com/bmakedika/order-api/actions)
 ![Python](https://img.shields.io/badge/Python-3.14-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.116-009688)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -132,7 +132,7 @@ order-api-python/
 ### 1. Cloner le dépôt
 
 ```bash
-git clone https://github.com/bmakedika/order-api-python.git
+git clone https://github.com/bmakedika/order-api.git
 cd order-api-python
 ```
 
@@ -346,4 +346,4 @@ MIT — voir [LICENSE](LICENSE)
 ---
 
 _Projet académique — Prépa Master Digital · Bienvenu MAKEDIKA · 2026_  
-_[github.com/bmakedika/order-api-python](https://github.com/bmakedika/order-api-python)_
+_[github.com/bmakedika/order-api-python](https://github.com/bmakedika/order-api)_
