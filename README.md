@@ -1,6 +1,10 @@
 # Order API
 
-> Backoffice et API REST headless de gestion e-commerce — sécurisée, observable et orientée données.
+> Order API is a secure, headless, API-first e-commerce back office platform designed to empower small-to-medium businesses (SMBs) with maximum flexibility, data sovereignty, and future-ready analytics features.
+>
+> Built with FastAPI, PostgreSQL, and Redis, it offers full lifecycle management for orders — from authentication, product catalog, and secure idempotent payments to automated invoicing and real-time monitoring.
+>
+> Order API puts control back in the hands of business teams by providing robust role-based access (RBAC), self-service data exports (CSV/Excel), and integrated dashboards for real-time decision-making — all in a scalable, open architecture.
 
 [![CI](https://github.com/bmakedika/order-api/actions/workflows/tests.yml/badge.svg)](https://github.com/bmakedika/order-api/actions)
 ![Python](https://img.shields.io/badge/Python-3.14-blue)
@@ -9,80 +13,80 @@
 
 ---
 
-## Vue d'ensemble
+## Overview
 
-Order API est un backoffice REST construit avec **FastAPI**, **PostgreSQL** et **Redis**.  
-Le projet couvre l'intégralité du cycle de vie d'une commande e-commerce : authentification, gestion des produits, commandes, paiements idempotents, facturation automatique et monitoring en temps réel.
+Order API is designed with production-grade API principles:
 
-Il est conçu selon les principes d'une API de production :
+- **API-first & headless:** Seamlessly connect any frontend or tool, benefit from RESTful, well-documented endpoints.
+- **Layered architecture:** (API → Middleware → Services → Repository) for clear separation of concerns and maintainability.
+- **Role-Based Access Control (RBAC):** Fine-grained, secure permissions for users and admins.
+- **Built-in observability:** Exported Prometheus metrics and ready-to-use Grafana dashboards.
+- **Business-centric analytics:** Automated reporting, KPI calculation, data exports (CSV/Excel) and support for operational dashboards (see roadmap).
+- **Developer experience & reliability:** 25+ automated tests, in-memory test stack, and CI on every push.
+- **Ready for scaling and real-time monitoring.**
 
-- Architecture en couches (API → Middlewares → Services → Repository)
-- Contrôle d'accès basé sur les rôles (RBAC) — `user` et `admin`
-- Observabilité intégrée — métriques Prometheus, dashboards Grafana
-- Qualité assurée — 25 tests automatisés, CI GitHub Actions sur chaque push
-
-**Docs interactives :** `http://localhost:8000/docs`  
-**Métriques :** `http://localhost:8000/metrics`  
-**Grafana :** `http://localhost:3001`  
-**Prometheus :** `http://localhost:9090`
-
----
-
-## Fonctionnalités
-
-### Authentification & sécurité
-
-- JWT Bearer — access token + refresh token avec rotation
-- Blacklist des tokens révoqués via Redis
-- Contrôle d'accès par rôle (`require_role()`) — user et admin
-- Rate limiting par IP et par famille de routes
-
-### Catalogue produits
-
-- CRUD complet réservé aux admins (POST / PATCH / DELETE)
-- Consultation publique sans authentification (GET)
-- Pagination, filtres et tri
-
-### Commandes
-
-- Cycle de vie complet : draft → items → paiement → livraison
-- Filtrage par utilisateur connecté — un user ne voit que ses commandes
-- Mise à jour de statut réservée aux admins
-
-### Paiements
-
-- Paiement idempotent via header `Idempotency-Key` (cache Redis 24h)
-- Facturation automatique à chaque paiement validé
-- Zéro double débit garanti
-
-### Observabilité
-
-- Endpoint `/metrics` exposé pour Prometheus
-- Métriques HTTP : `http_requests_total`, `http_request_duration_seconds`
-- Dashboard Grafana auto-provisionné au démarrage : latency p95, RPS, error rate
-
-### Qualité & CI
-
-- 25 tests pytest (auth, orders, products, invoices, RBAC)
-- Base SQLite en mémoire pour les tests — isolation totale
-- GitHub Actions — pipeline CI sur chaque push
+**Interactive docs:** `http://localhost:8000/docs`  
+**Metrics:** `http://localhost:8000/metrics`  
+**Grafana:** `http://localhost:3001`  
+**Prometheus:** `http://localhost:9090`
 
 ---
 
-## Stack technique
+## Features
 
-| Technologie        | Rôle                          | Pourquoi ce choix                                                  |
-| ------------------ | ----------------------------- | ------------------------------------------------------------------ |
-| **FastAPI**        | Framework API REST            | Performance async, validation Pydantic native, Swagger auto-généré |
-| **PostgreSQL 15**  | Base de données relationnelle | Fiabilité, transactions ACID, support UUID natif                   |
-| **SQLAlchemy 2**   | ORM                           | Abstraction de la DB, pattern Repository facilité                  |
-| **Alembic**        | Migrations de schéma          | Versioning des changements de DB, rollback possible                |
-| **Redis 7**        | Cache multi-usage             | Idempotency des paiements, blacklist JWT, rate limiting            |
-| **Prometheus**     | Collecte de métriques         | Standard industrie, scrape toutes les 5s                           |
-| **Grafana 11**     | Dashboards                    | Provisioning automatique via fichiers JSON                         |
-| **Docker Compose** | Orchestration locale          | Reproductibilité de l'environnement en une commande                |
-| **pytest**         | Tests automatisés             | Fixtures isolées, mode strict asyncio                              |
-| **GitHub Actions** | CI/CD                         | Pipeline automatique sur chaque push vers `main`                   |
+### Authentication & Security
+
+- JWT Bearer — access token + refresh token with rotation
+- Revoked token blacklist using Redis
+- Role-based access control (`require_role()`) — user and admin
+- Rate limiting by IP and route groups
+
+### Product Catalog
+
+- Full CRUD reserved for admins (POST / PATCH / DELETE)
+- Public read-only access (GET) without authentication
+- Pagination, filters, and sorting
+
+### Orders
+
+- Full lifecycle: draft → items → payment → delivery
+- Filtering by authenticated user — users can only see their own orders
+- Status updates restricted to admins
+
+### Payments
+
+- Idempotent payments via `Idempotency-Key` header (Redis cache 24h)
+- Automatic invoicing on each successful payment
+- Guaranteed no double charging
+
+### Observability
+
+- `/metrics` endpoint exposed for Prometheus
+- HTTP metrics: `http_requests_total`, `http_request_duration_seconds`
+- Grafana dashboard auto-provisioned at startup: p95 latency, RPS, error rate
+
+### Quality & CI
+
+- 25 pytest tests (auth, orders, products, invoices, RBAC)
+- In-memory SQLite base for tests — full isolation
+- GitHub Actions — CI pipeline on every push
+
+---
+
+## Tech stack
+
+| Technology         | Role                | Why this choice                                                       |
+| ------------------ | ------------------- | --------------------------------------------------------------------- |
+| **FastAPI**        | REST API framework  | Async performance, native Pydantic validation, auto-generated Swagger |
+| **PostgreSQL 15**  | Relational database | Reliability, ACID transactions, native UUID support                   |
+| **SQLAlchemy 2**   | ORM                 | Database abstraction, easy Repository pattern                         |
+| **Alembic**        | Schema migrations   | Versioning of DB changes, possible rollback                           |
+| **Redis 7**        | Multi-purpose cache | Idempotency for payment, JWT blacklist, rate limiting                 |
+| **Prometheus**     | Metrics collection  | Industry standard, scrapes every 5s                                   |
+| **Grafana 11**     | Dashboards          | Automatic provisioning via JSON files                                 |
+| **Docker Compose** | Local orchestration | Environment reproducibility with one command                          |
+| **pytest**         | Automated tests     | Isolated fixtures, strict asyncio mode                                |
+| **GitHub Actions** | CI/CD               | Auto pipeline on every push to `main`                                 |
 
 ---
 
@@ -91,52 +95,52 @@ Il est conçu selon les principes d'une API de production :
 ```
 order-api-python/
 ├── app/
-│   ├── api/                  # Endpoints REST (auth, products, orders, invoices, users)
+│   ├── api/                  # REST endpoints (auth, products, orders, invoices, users)
 │   ├── core/
 │   │   ├── auth.py           # JWT, require_role(), backward-compatible aliases
-│   │   ├── config.py         # Variables d'environnement (pydantic-settings)
-│   │   ├── database.py       # Engine SQLAlchemy, SessionLocal
-│   │   ├── redis_client.py   # Client Redis partagé
+│   │   ├── config.py         # Environment variables (pydantic-settings)
+│   │   ├── database.py       # SQLAlchemy engine, SessionLocal
+│   │   ├── redis_client.py   # Shared Redis client
 │   │   ├── token_blacklist.py
 │   │   ├── metrics/
-│   │   │   └── prometheus.py # Middleware + endpoint /metrics
+│   │   │   └── prometheus.py # Middleware + /metrics endpoint
 │   │   └── middlewares/
-│   │       ├── audit.py      # Log CSV de chaque requête
+│   │       ├── audit.py      # CSV log for each request
 │   │       ├── cors.py       # CORS middleware
-│   │       └── rate_limit.py # Rate limiting par IP
-│   ├── models/               # Modèles SQLAlchemy
-│   ├── repos/                # Couche Repository — requêtes DB
-│   ├── schemas/              # Schémas Pydantic (request / response)
-│   └── services/             # Logique métier
+│   │       └── rate_limit.py # IP-based rate limiting
+│   ├── models/               # SQLAlchemy models
+│   ├── repos/                # Repository layer — db queries
+│   ├── schemas/              # Pydantic schemas (request / response)
+│   └── services/             # Business logic
 ├── monitoring/
-│   ├── prometheus.yml        # Config scrape Prometheus
+│   ├── prometheus.yml        # Prometheus scrape config
 │   └── grafana/
 │       ├── provisioning/     # Datasource + dashboard provider
-│       └── dashboards/       # Dashboard Order API (JSON)
-├── tests/                    # Suite de tests pytest
+│       └── dashboards/       # Order API dashboard (JSON)
+├── tests/                    # Pytest tests suite
 ├── docker-compose.yml        # PostgreSQL + Redis
 ├── docker-compose.monitoring.yml  # Prometheus + Grafana
-└── alembic/                  # Migrations de schéma
+└── alembic/                  # Schema migrations
 ```
 
 ---
 
-## Démarrage rapide
+## Quickstart
 
-### Prérequis
+### Prerequisites
 
 - Python 3.11+
 - Docker Desktop
 - Git
 
-### 1. Cloner le dépôt
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/bmakedika/order-api.git
 cd order-api-python
 ```
 
-### 2. Créer l'environnement virtuel
+### 2. Create a virtual environment
 
 ```bash
 python -m venv .venv
@@ -148,35 +152,35 @@ python -m venv .venv
 source .venv/bin/activate
 ```
 
-### 3. Installer les dépendances
+### 3. Install dependencies
 
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 4. Configurer les variables d'environnement
+### 4. Configure environment variables
 
 ```bash
 cp .env.example .env
-# Éditer .env avec vos valeurs
+# Edit .env with your own values
 ```
 
-> **Conseil :** Utilisez un mot de passe sans caractères spéciaux dans `POSTGRES_PASSWORD` et `DATABASE_URL` pour éviter les problèmes d'encodage URL.
+> **Tip:** Use a password without special characters for `POSTGRES_PASSWORD` and `DATABASE_URL` to avoid URL encoding issues.
 
-### 5. Démarrer l'infrastructure
+### 5. Start the infrastructure
 
 ```bash
 docker compose up -d
 ```
 
-### 6. Appliquer les migrations
+### 6. Apply migrations
 
 ```bash
 alembic upgrade head
 ```
 
-> Si les migrations échouent (volume Docker avec d'anciens credentials) :
+> If migrations fail (Docker volume with old credentials):
 >
 > ```bash
 > docker compose down -v
@@ -184,146 +188,146 @@ alembic upgrade head
 > alembic upgrade head
 > ```
 >
-> ⚠️ Cette commande supprime toutes les données existantes.
+> ⚠️ This will delete all existing data.
 
-### 7. Lancer l'API
+### 7. Run the API
 
 ```bash
 uvicorn app.main:app --reload --env-file .env
 ```
 
-L'API est disponible sur `http://localhost:8000/docs`
+The API will be available at `http://localhost:8000/docs`
 
 ---
 
-## Monitoring (optionnel)
+## Monitoring (optional)
 
 ```bash
 docker compose -f docker-compose.monitoring.yml up -d
 ```
 
-| Service       | URL                             | Credentials   |
-| ------------- | ------------------------------- | ------------- |
-| Grafana       | `http://localhost:3001`         | admin / admin |
-| Prometheus    | `http://localhost:9090`         | —             |
-| Métriques API | `http://localhost:8000/metrics` | —             |
+| Service     | URL                             | Credentials   |
+| ----------- | ------------------------------- | ------------- |
+| Grafana     | `http://localhost:3001`         | admin / admin |
+| Prometheus  | `http://localhost:9090`         | —             |
+| API metrics | `http://localhost:8000/metrics` | —             |
 
-Le dashboard **Order API — Overview** se charge automatiquement dans Grafana (provisioning).
+The **Order API — Overview** dashboard is auto-loaded in Grafana (provisioning).
 
 ---
 
 ## Endpoints
 
-### Authentification
+### Authentication
 
-| Méthode | Endpoint         | Description               | Auth           |
-| ------- | ---------------- | ------------------------- | -------------- |
-| POST    | `/auth/register` | Créer un compte           | —              |
-| POST    | `/auth/login`    | Obtenir les tokens JWT    | —              |
-| POST    | `/auth/refresh`  | Renouveler l'access token | Cookie refresh |
-| POST    | `/auth/logout`   | Révoquer les tokens       | Bearer         |
+| Method | Endpoint         | Description          | Auth           |
+| ------ | ---------------- | -------------------- | -------------- |
+| POST   | `/auth/register` | Create an account    | —              |
+| POST   | `/auth/login`    | Obtain JWT tokens    | —              |
+| POST   | `/auth/refresh`  | Refresh access token | Cookie refresh |
+| POST   | `/auth/logout`   | Revoke tokens        | Bearer         |
 
-### Produits
+### Products
 
-| Méthode | Endpoint         | Description          | Auth  |
-| ------- | ---------------- | -------------------- | ----- |
-| GET     | `/products`      | Lister les produits  | —     |
-| GET     | `/products/{id}` | Détail d'un produit  | —     |
-| POST    | `/products`      | Créer un produit     | admin |
-| PATCH   | `/products/{id}` | Modifier un produit  | admin |
-| DELETE  | `/products/{id}` | Supprimer un produit | admin |
+| Method | Endpoint         | Description      | Auth  |
+| ------ | ---------------- | ---------------- | ----- |
+| GET    | `/products`      | List products    | —     |
+| GET    | `/products/{id}` | Product details  | —     |
+| POST   | `/products`      | Create a product | admin |
+| PATCH  | `/products/{id}` | Update a product | admin |
+| DELETE | `/products/{id}` | Delete a product | admin |
 
-### Commandes
+### Orders
 
-| Méthode | Endpoint                       | Description                | Auth                |
-| ------- | ------------------------------ | -------------------------- | ------------------- |
-| POST    | `/orders`                      | Créer une commande (draft) | user                |
-| GET     | `/orders/{id}`                 | Détail d'une commande      | user (propriétaire) |
-| POST    | `/orders/{id}/items`           | Ajouter un article         | user                |
-| DELETE  | `/orders/{id}/items/{item_id}` | Retirer un article         | user                |
-| POST    | `/orders/{id}/pay`             | Payer (idempotent)         | user                |
-| PATCH   | `/orders/{id}/status`          | Mettre à jour le statut    | admin               |
+| Method | Endpoint                       | Description             | Auth         |
+| ------ | ------------------------------ | ----------------------- | ------------ |
+| POST   | `/orders`                      | Create an order (draft) | user         |
+| GET    | `/orders/{id}`                 | Order details           | user (owner) |
+| POST   | `/orders/{id}/items`           | Add an item             | user         |
+| DELETE | `/orders/{id}/items/{item_id}` | Remove an item          | user         |
+| POST   | `/orders/{id}/pay`             | Pay (idempotent)        | user         |
+| PATCH  | `/orders/{id}/status`          | Update order status     | admin        |
 
-### Factures
+### Invoices
 
-| Méthode | Endpoint                | Description             | Auth                |
-| ------- | ----------------------- | ----------------------- | ------------------- |
-| GET     | `/invoices/{id}`        | Détail d'une facture    | user (propriétaire) |
-| GET     | `/orders/{id}/invoices` | Factures d'une commande | user (propriétaire) |
+| Method | Endpoint                | Description           | Auth         |
+| ------ | ----------------------- | --------------------- | ------------ |
+| GET    | `/invoices/{id}`        | Invoice details       | user (owner) |
+| GET    | `/orders/{id}/invoices` | Invoices for an order | user (owner) |
 
-### Utilisateur
+### User
 
-| Méthode | Endpoint    | Description                      | Auth |
-| ------- | ----------- | -------------------------------- | ---- |
-| GET     | `/users/me` | Profil de l'utilisateur connecté | user |
+| Method | Endpoint    | Description                       | Auth |
+| ------ | ----------- | --------------------------------- | ---- |
+| GET    | `/users/me` | Profile of the authenticated user | user |
 
 ---
 
-## Authentification — exemple curl
+## Authentication — curl examples
 
 ```bash
-# 1. Créer un compte
+# 1. Create an account
 curl -X POST http://localhost:8000/auth/register \
   -H "Content-Type: application/json" \
   -d '{"username": "john", "email": "john@example.com", "password": "secret123"}'
 
-# 2. Se connecter
+# 2. Login
 curl -X POST http://localhost:8000/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email": "john@example.com", "password": "secret123"}'
 
-# 3. Utiliser le token
+# 3. Use the token
 curl http://localhost:8000/orders \
   -H "Authorization: Bearer <access_token>"
 ```
 
 ---
 
-## Paiement idempotent — exemple curl
+## Idempotent Payment — curl example
 
 ```bash
 curl -X POST http://localhost:8000/orders/{id}/pay \
   -H "Authorization: Bearer <access_token>" \
-  -H "Idempotency-Key: commande-001-tentative-1"
+  -H "Idempotency-Key: order-001-attempt-1"
 ```
 
-Appeler `/pay` plusieurs fois avec la même clé retourne toujours la même réponse sans re-débiter.
+Calling `/pay` multiple times with the same key always returns the same response without double charging.
 
 ---
 
 ## Tests
 
 ```bash
-# Lancer tous les tests
+# Run all tests
 pytest -v
 
-# Avec couverture
+# With coverage
 pytest --cov=app --cov-report=term-missing
 ```
 
-La suite de tests utilise une base SQLite en mémoire et un Redis isolé (flushdb avant chaque test). Aucune dépendance à l'infrastructure Docker.
+The test suite uses an in-memory SQLite base and an isolated Redis (flushdb before each test). No dependency on Docker infrastructure.
 
 ---
 
-## Commandes utiles
+## Useful commands
 
 ```bash
-# Redémarrer l'infrastructure
+# Restart the infrastructure
 docker compose down && docker compose up -d
 
-# Créer une nouvelle migration
+# Create a new migration
 alembic revision --autogenerate -m "description"
 
-# Appliquer les migrations
+# Apply migrations
 alembic upgrade head
 
-# Rollback d'une migration
+# Roll back a migration
 alembic downgrade -1
 
-# Lancer les tests en mode verbose
+# Run tests in verbose mode
 pytest -v
 
-# Vérifier le linting
+# Check linting
 ruff check app/
 ```
 
@@ -331,19 +335,19 @@ ruff check app/
 
 ## Roadmap
 
-| Horizon           | Fonctionnalités                                                                                      |
-| ----------------- | ---------------------------------------------------------------------------------------------------- |
-| **À court terme** | Exports CSV/Excel (admin) · Dashboards métier Grafana · Script KPI automatisé (APScheduler)          |
-| **À moyen terme** | Déploiement cloud (Railway/Render) · Intégration paiement réel (Stripe) · Documentation API enrichie |
-| **À long terme**  | Multi-tenant · Publication open source · Métriques métier avancées                                   |
+| Timeline       | Features                                                                          |
+| -------------- | --------------------------------------------------------------------------------- |
+| **Short term** | Exports CSV/Excel (admin) · Grafana business dashboards · Automated KPI script    |
+| **Mid term**   | Cloud deployment · Payment integration · Enhanced API docs                        |
+| **Long term**  | Advanced business analytics dashboards and reporting · Multi-tenant · Open source |
 
 ---
 
-## Licence
+## License
 
-MIT — voir [LICENSE](LICENSE)
+MIT — see [LICENSE](LICENSE)
 
 ---
 
-_Projet académique — Prépa Master Digital · Bienvenu MAKEDIKA · 2026_  
+_Academic project — Pre-Master Digital · Bienvenu MAKEDIKA · 2026_  
 _[github.com/bmakedika/order-api](https://github.com/bmakedika/order-api)_
