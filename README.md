@@ -1,12 +1,12 @@
 # Order API
 
-> Order API is a secure, headless, API-first e-commerce back office platform designed to empower small-to-medium businesses (SMBs) with maximum flexibility, data sovereignty, and future-ready analytics features.
+> Order API is a secure, headless, API-first e-commerce back office platform designed to empower small-to-medium businesses (SMBs) with flexibility, data sovereignty, and analytics-oriented features.
 >
-> Built with FastAPI, PostgreSQL, and Redis, it offers full lifecycle management for orders — from authentication, product catalog, and secure idempotent payments to automated invoicing and real-time monitoring.
+> Built with FastAPI, PostgreSQL, and Redis, it provides full lifecycle management for orders — from authentication, product catalog, and secure idempotent payments to automated invoicing and real-time monitoring.
 >
-> Order API puts control back in the hands of business teams by providing robust role-based access (RBAC), self-service data exports (CSV/Excel), and integrated dashboards for real-time decision-making — all in a scalable, open architecture.
+> Order API helps business teams regain control over their operations through role-based access control (RBAC), self-service exports (CSV/Excel), observability tools, and integrated dashboards for operational decision-making.
 
-[![CI](https://github.com/bmakedika/order-api/actions/workflows/tests.yml/badge.svg)](https://github.com/bmakedika/order-api/actions)
+[![CI](https://github.com/bmakedika/order-api/actions/workflows/ci.yml/badge.svg)](https://github.com/bmakedika/order-api/actions)
 ![Python](https://img.shields.io/badge/Python-3.14-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.116-009688)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -15,20 +15,43 @@
 
 ## Overview
 
-Order API is designed with production-grade API principles:
+Order API follows production-inspired API design principles:
 
-- **API-first & headless:** Seamlessly connect any frontend or tool, benefit from RESTful, well-documented endpoints.
-- **Layered architecture:** (API → Middleware → Services → Repository) for clear separation of concerns and maintainability.
-- **Role-Based Access Control (RBAC):** Fine-grained, secure permissions for users and admins.
-- **Built-in observability:** Exported Prometheus metrics and ready-to-use Grafana dashboards.
-- **Business-centric analytics:** Automated reporting, KPI calculation, data exports (CSV/Excel) and support for operational dashboards (see roadmap).
-- **Developer experience & reliability:** 25+ automated tests, in-memory test stack, and CI on every push.
-- **Ready for scaling and real-time monitoring.**
+- **API-first & headless:** Connect any frontend or external tool through RESTful endpoints.
+- **Layered architecture:** Clear separation of concerns (API → Middleware → Services → Repository).
+- **Role-Based Access Control (RBAC):** Secure and fine-grained permissions for users and administrators.
+- **Built-in observability:** Prometheus metrics and Grafana dashboards included by default.
+- **Business-oriented analytics:** KPI monitoring, CSV/Excel exports, and operational dashboards.
+- **Developer experience & reliability:** Automated tests, CI/CD pipeline, and Dockerized environment.
+- **Scalable backend foundation:** Designed for monitoring, maintainability, and future extensibility.
 
 **Interactive docs:** `http://localhost:8000/docs`  
 **Metrics:** `http://localhost:8000/metrics`  
 **Grafana:** `http://localhost:3001`  
 **Prometheus:** `http://localhost:9090`
+
+---
+
+## Documentation
+
+Additional project documentation is available in the `/docs` directory:
+
+- `order-api-project-documentation.pdf` — Product backlog, user stories, sprint planning, architecture and roadmap
+- `grafana-dashboard.png` — Monitoring dashboard (Latency p95, RPS, error rate)
+- `prometheus-metrics.png` — Prometheus metrics overview and HTTP request histogram
+- `soutenance-order-api.pdf` — Final project presentation slides
+
+---
+
+## Project Highlights
+
+- Headless e-commerce backend
+- Secure RBAC authorization model
+- Observability with Prometheus & Grafana
+- Dockerized architecture
+- Monitoring-oriented KPIs
+- Agile backlog & sprint planning
+- Production-inspired API design
 
 ---
 
@@ -73,54 +96,61 @@ Order API is designed with production-grade API principles:
 
 ---
 
-## Tech stack
+## Tech Stack
 
 | Technology         | Role                | Why this choice                                                       |
 | ------------------ | ------------------- | --------------------------------------------------------------------- |
 | **FastAPI**        | REST API framework  | Async performance, native Pydantic validation, auto-generated Swagger |
 | **PostgreSQL 15**  | Relational database | Reliability, ACID transactions, native UUID support                   |
-| **SQLAlchemy 2**   | ORM                 | Database abstraction, easy Repository pattern                         |
-| **Alembic**        | Schema migrations   | Versioning of DB changes, possible rollback                           |
-| **Redis 7**        | Multi-purpose cache | Idempotency for payment, JWT blacklist, rate limiting                 |
-| **Prometheus**     | Metrics collection  | Industry standard, scrapes every 5s                                   |
-| **Grafana 11**     | Dashboards          | Automatic provisioning via JSON files                                 |
-| **Docker Compose** | Local orchestration | Environment reproducibility with one command                          |
-| **pytest**         | Automated tests     | Isolated fixtures, strict asyncio mode                                |
-| **GitHub Actions** | CI/CD               | Auto pipeline on every push to `main`                                 |
+| **SQLAlchemy 2**   | ORM                 | Database abstraction, Repository pattern implementation               |
+| **Alembic**        | Schema migrations   | Database versioning and rollback support                              |
+| **Redis 7**        | Multi-purpose cache | Payment idempotency, JWT blacklist, rate limiting                     |
+| **Prometheus**     | Metrics collection  | Real-time metrics scraping and monitoring                             |
+| **Grafana 11**     | Dashboards          | KPI visualization and observability dashboards                        |
+| **Docker Compose** | Local orchestration | Reproducible environments with one command                            |
+| **pytest**         | Automated tests     | Isolated fixtures and API reliability                                 |
+| **GitHub Actions** | CI/CD               | Automated pipeline on every push                                      |
 
 ---
 
 ## Architecture
 
-```
-order-api-python/
-├── app/
-│   ├── api/                  # REST endpoints (auth, products, orders, invoices, users)
-│   ├── core/
-│   │   ├── auth.py           # JWT, require_role(), backward-compatible aliases
-│   │   ├── config.py         # Environment variables (pydantic-settings)
-│   │   ├── database.py       # SQLAlchemy engine, SessionLocal
-│   │   ├── redis_client.py   # Shared Redis client
-│   │   ├── token_blacklist.py
-│   │   ├── metrics/
-│   │   │   └── prometheus.py # Middleware + /metrics endpoint
-│   │   └── middlewares/
-│   │       ├── audit.py      # CSV log for each request
-│   │       ├── cors.py       # CORS middleware
-│   │       └── rate_limit.py # IP-based rate limiting
-│   ├── models/               # SQLAlchemy models
-│   ├── repos/                # Repository layer — db queries
-│   ├── schemas/              # Pydantic schemas (request / response)
-│   └── services/             # Business logic
-├── monitoring/
-│   ├── prometheus.yml        # Prometheus scrape config
-│   └── grafana/
-│       ├── provisioning/     # Datasource + dashboard provider
-│       └── dashboards/       # Order API dashboard (JSON)
-├── tests/                    # Pytest tests suite
-├── docker-compose.yml        # PostgreSQL + Redis
-├── docker-compose.monitoring.yml  # Prometheus + Grafana
-└── alembic/                  # Schema migrations
+```text
+Client / Frontend
+        │
+        ▼
+ ┌─────────────────────┐
+ │     FastAPI API     │
+ ├─────────────────────┤
+ │ Routes & Middleware │
+ │ Authentication JWT  │
+ │ RBAC Authorization  │
+ │ Rate Limiting       │
+ └─────────────────────┘
+        │
+        ▼
+ ┌─────────────────────┐
+ │  Service Layer      │
+ │ Business Logic      │
+ └─────────────────────┘
+        │
+        ▼
+ ┌─────────────────────┐
+ │ Repository Layer    │
+ │ SQLAlchemy ORM      │
+ └─────────────────────┘
+        │
+        ├──────────────► PostgreSQL
+        │
+        ├──────────────► Redis
+        │                 • JWT Blacklist
+        │                 • Idempotency
+        │                 • Rate Limiting
+        │
+        └──────────────► Prometheus
+                              │
+                              ▼
+                           Grafana
 ```
 
 ---
@@ -337,9 +367,9 @@ ruff check app/
 
 | Timeline       | Features                                                                          |
 | -------------- | --------------------------------------------------------------------------------- |
-| **Short term** | Exports CSV/Excel (admin) · Grafana business dashboards · Automated KPI script    |
-| **Mid term**   | Cloud deployment · Payment integration · Enhanced API docs                        |
-| **Long term**  | Advanced business analytics dashboards and reporting · Multi-tenant · Open source |
+| **Short term** | Exports CSV/Excel · Grafana business dashboards · Automated KPI script            |
+| **Mid term**   | Cloud deployment · Payment integration · Enhanced API documentation               |
+| **Long term**  | Advanced analytics dashboards · Multi-tenant architecture · Open source evolution |
 
 ---
 
