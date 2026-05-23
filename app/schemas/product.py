@@ -10,6 +10,8 @@ class ProductCreate(BaseModel):
     price_cents: int
     currency: str
     category: str
+    stock_quantity:    int = 0
+    reserved_quantity: int = 0
 
 
 class ProductUpdate(BaseModel):
@@ -18,9 +20,11 @@ class ProductUpdate(BaseModel):
     price_cents: Optional[int] = None
     currency: Optional[str] = None
     category: Optional[str] = None
+    stock_quantity:    Optional[int] = None
+    reserved_quantity: Optional[int] = None
 
 
-class Product(BaseModel):
+class ProductResponse(BaseModel):
     id: UUID
     name: str
     description: str
@@ -29,10 +33,12 @@ class Product(BaseModel):
     category: str
     is_active: bool = True
     created_at: datetime
+    stock_quantity:    int
+    reserved_quantity: int
 
 
 class ProductList(BaseModel):
-    items: List[Product]
+    items: List[ProductResponse]
     page: int
     page_size: int
     total: int
