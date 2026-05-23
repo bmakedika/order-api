@@ -1,60 +1,77 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from uuid import UUID
 from app.models.order import OrderModel, OrderItemModel
 
-# CREATE
 
-def create(db: Session, data: dict) -> OrderModel:
+async def create(db: AsyncSession, data: dict) -> OrderModel:
     order = OrderModel(**data)
     db.add(order)
-    db.commit()
-    db.refresh(order)
+    await db.commit()
+    await db.refresh(order)
     return order
 
 
-def add_item(db: Session, data: dict) -> OrderItemModel:
+async def add_item(db: AsyncSession, data: dict) -> OrderItemModel:
     item = OrderItemModel(**data)
     db.add(item)
-    db.commit()
-    db.refresh(item)
+    await db.commit()
+    await db.refresh(item)
     return item
 
-# READ
 
-def get_by_id(db: Session, order_id: UUID) -> OrderModel | None:
-    return db.query(OrderModel).filter(OrderModel.id == order_id).first()
+async def get_by_id(db: AsyncSession, order_id: UUID) -> OrderModel | None:
+    result = await db.execute(
+        select(OrderModel).where(OrderModel.id == order_id)
+    )
+    return result.scalar_one_or_none()
 
 
-def get_item_by_product(db, order_id, product_id):
-    return db.query(OrderItemModel).filter_by(
-        order_id=order_id,
-        product_id=product_id
-    ).first()
+async def get_item_by_product(
+    db: AsyncSession, order_id: UUID, product_id: UUID
+) -> OrderItemModel | None:
+    result = await db.execute(
+        select(OrderItemModel).where(
+            OrderItemModel.order_id == order_id,
+            OrderItemModel.product_id == product_id,
+        )
+    )
+    return result.scalar_one_or_none()
 
-# UPDATE
 
-def update_total(db: Session, order: OrderModel) -> OrderModel:
+async def get_item_by_id(
+    db: AsyncSession, item_id: UUID
+) -> OrderItemModel | None:
+    result = await db.execute(
+        select(OrderItemModel).where(OrderItemModel.id == item_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def update_total(db: AsyncSession, order: OrderModel) -> OrderModel:
     order.total_cents = sum(item.line_total_cents for item in order.items)
-    db.commit()
-    db.refresh(order)
+    await db.commit()
+    await db.refresh(order)
     return order
 
 
-def save(db: Session, obj):
-    db.add(obj)
-    db.commit()
-    db.refresh(obj)
-    return obj
+async def save(db: AsyncSession, obj) -> None:
+    await db.commit()
+    await db.refresh(obj)
 
-# DELETE
 
-def remove_item(db: Session, order_id: UUID, item_id: UUID) -> bool:
-    item = db.query(OrderItemModel).filter(
-        OrderItemModel.id == item_id,
-        OrderItemModel.order_id == order_id,
-    ).first()
+async def remove_item(
+    db: AsyncSession, order_id: UUID, item_id: UUID
+) -> bool:
+    result = await db.execute(
+        select(OrderItemModel).where(
+            OrderItemModel.id == item_id,
+            OrderItemModel.order_id == order_id,
+        )
+    )
+    item = result.scalar_one_or_none()
     if not item:
         return False
-    db.delete(item)
-    db.commit()
+    await db.delete(item)
+    await db.commit()
     return True
