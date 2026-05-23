@@ -17,4 +17,7 @@ class UserModel(Base):
     is_active          = Column(Boolean, default=True, nullable=False)
     created_at         = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
-    orders = relationship('OrderModel', back_populates='user')
+    # Relationships
+    orders = relationship('OrderModel', back_populates='user', lazy='selectin')
+    created_invoices   = relationship('InvoiceModel', foreign_keys='InvoiceModel.created_by',  back_populates='creator', lazy='selectin')
+    validated_invoices = relationship('InvoiceModel', foreign_keys='InvoiceModel.validated_by', back_populates='validator', lazy='selectin')
