@@ -1,36 +1,49 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from uuid import UUID
 from app.models.product import ProductModel
 
-def list_active(db: Session) -> list[ProductModel]:
-    return db.query(ProductModel).filter(
-        ProductModel.is_active == True
-        ).all()
+
+async def list_active(db: AsyncSession) -> list[ProductModel]:
+    result = await db.execute(
+        select(ProductModel)
+        .where(ProductModel.is_active == True)
+    )
+    return list(result.scalars().all())
 
 
-def get_by_id(db: Session, product_id: UUID) -> ProductModel | None:
-    return db.query(ProductModel).filter(
-        ProductModel.id == product_id,
-        ProductModel.is_active == True
-        ).first()
-        
-        
-def create(db: Session, data: dict) -> ProductModel:
-        product = ProductModel(**data)
-        db.add(product)
-        db.commit()
-        db.refresh(product)
-        return product
+async def get_by_id(db: AsyncSession, product_id: UUID) -> ProductModel | None:
+    result = await db.execute(
+        select(ProductModel)
+        .where(
+            ProductModel.id == product_id,
+            ProductModel.is_active == True
+        )
+    )
+    return result.scalar_one_or_none()
 
 
-def update(db: Session, product: ProductModel, data: dict) -> ProductModel:
-    for key, value in data.items():
-         setattr(product, key, value)
-    db.commit()
-    db.refresh(product)
+async def create(db: AsyncSession, data: dict) -> ProductModel:
+    product = ProductModel(**data)
+    db.add(product)
+    await db.commit()
+    await db.refresh(product)
     return product
 
 
-def soft_delete(db: Session, product: ProductModel) -> None:
+async def update(db: AsyncSession, product: ProductModel, data: dict) -> ProductModel:
+    for key, value in data.items():
+        setattr(product, key, value)
+    await db.commit()
+    await db.refresh(product)
+    return product
+
+
+async def soft_delete(db: AsyncSession, product: ProductModel) -> None:
     product.is_active = False
-    db.commit()
+    await db.commit()
+
+
+async def save(db: AsyncSession, product: ProductModel) -> None:
+    await db.commit()
+    await db.refresh(product)
