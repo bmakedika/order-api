@@ -1,7 +1,7 @@
-import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+import pytest_asyncio
+from httpx import AsyncClient, ASGITransport
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.pool import StaticPool
 from app.main import app
 from app.core.database import Base, get_db
 from app.core.auth import require_admin, require_user
@@ -9,25 +9,32 @@ from app.core.redis_client import get_redis
 from app.models.user import UserModel
 from uuid import uuid4
 
+SQLALCHEMY_DATABASE_URL = 'sqlite+aiosqlite:///:memory:'
 
-# DB SQLite in momory for testing
-SQLALCHEMY_DATABASE_URL = 'sqlite:///./test.db'
-engine = create_engine(
+engine = create_async_engine(
     SQLALCHEMY_DATABASE_URL,
-    connect_args={'check_same_thread': False}
+    connect_args={'check_same_thread': False},
+    poolclass=StaticPool,
 )
-TestingSessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+
+TestingSessionLocal = async_sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    autocommit=False,
+    autoflush=False,
+    expire_on_commit=False,
+)
 
 
-# override get_db dependency
-def override_get_db():
-    db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+async def override_get_db():
+    async with TestingSessionLocal() as session:
+        try:
+            yield session
+        except Exception:
+            await session.rollback()
+            raise
 
-# override auth dependencies
+
 def override_require_admin():
     return {'sub': 'admin@example.com', 'role': 'admin'}
 
@@ -35,43 +42,62 @@ def override_require_admin():
 def override_require_user():
     return {'sub': 'user@example.com', 'role': 'user'}
 
-# pytest fixture for client
-@pytest.fixture(scope='function')
-def client():
-    Base.metadata.create_all(bind=engine)
+
+@pytest_asyncio.fixture(scope='function')
+async def client():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
     get_redis().flushdb()
     app.dependency_overrides[get_db] = override_get_db
-    yield TestClient(app)
-    Base.metadata.drop_all(bind=engine)
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url='http://test'
+    ) as ac:
+        yield ac
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
     app.dependency_overrides = {}
 
-@pytest.fixture(scope='function')
-def client_auth():
-    Base.metadata.create_all(bind=engine)
-    get_redis().flushdb()
-    
-    #create users and find them by using get_by_email
-    db = TestingSessionLocal()
-    db.add(UserModel(
-        id=uuid4(),
-        username='testuser',
-        email='user@example.com',
-        hashed_password='fake',
-        role='user',
-    ))
-    db.add(UserModel(
-        id=uuid4(),
-        username='adminuser',
-        email='admin@example.com',
-        hashed_password='fake',
-        role='admin',
-    ))
-    db.commit()
-    db.close()
 
-    app.dependency_overrides[get_db] = override_get_db
-    app.dependency_overrides[require_admin] = override_require_admin
-    app.dependency_overrides[require_user] = override_require_user
-    yield TestClient(app)
-    Base.metadata.drop_all(bind=engine)
+@pytest_asyncio.fixture(scope='function')
+async def client_auth():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    get_redis().flushdb()
+
+    async with TestingSessionLocal() as db:
+        db.add(UserModel(
+            id=uuid4(),
+            username='testuser',
+            email='user@example.com',
+            hashed_password='fake',
+            role='user',
+            is_active=True,
+        ))
+        db.add(UserModel(
+            id=uuid4(),
+            username='adminuser',
+            email='admin@example.com',
+            hashed_password='fake',
+            role='admin',
+            is_active=True,
+        ))
+        await db.commit()
+
+    app.dependency_overrides[get_db]            = override_get_db
+    app.dependency_overrides[require_admin]     = override_require_admin
+    app.dependency_overrides[require_user]      = override_require_user
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url='http://test'
+    ) as ac:
+        yield ac
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
     app.dependency_overrides = {}
