@@ -6,32 +6,40 @@ from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 
-
 class InvoiceModel(Base):
     __tablename__ = 'invoices'
 
     id             = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    invoice_number = Column(String, nullable=False)
-    id_order       = Column(PG_UUID(as_uuid=True), ForeignKey('orders.id'), nullable=False)
-    id_payment     = Column(PG_UUID(as_uuid=True), nullable=False)
-    id_customer    = Column(String, nullable=False)
-    total_cents    = Column(Integer, nullable=False, default=0)
+    invoice_number = Column(String, nullable=False, unique=True)
+    id_order       = Column(PG_UUID(as_uuid=True), ForeignKey('orders.id'),    nullable=False)
+    id_payment     = Column(PG_UUID(as_uuid=True), nullable=True)
+    customer_id    = Column(PG_UUID(as_uuid=True), ForeignKey('customers.id'), nullable=True)
+    total_cents    = Column(Integer, nullable=False)
     tax            = Column(Integer, nullable=False)
+    created_by     = Column(PG_UUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
+    validated_by   = Column(PG_UUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
+    validated_at   = Column(DateTime(timezone=True), nullable=True)
     created_at     = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
-    order    = relationship('OrderModel', back_populates='invoices')
-    items    = relationship('InvoiceItemModel', back_populates='invoice')
+    # Relationships
+    order     = relationship('OrderModel',    back_populates='invoices', lazy='selectin')
+    customer  = relationship('CustomerModel', back_populates='invoices', lazy='selectin')
+    creator   = relationship('UserModel', foreign_keys=[created_by],   back_populates='created_invoices', lazy='selectin')
+    validator = relationship('UserModel', foreign_keys=[validated_by],  back_populates='validated_invoices', lazy='selectin')
+    items     = relationship('InvoiceItemModel', back_populates='invoice', cascade='all, delete-orphan', lazy='selectin')
 
 
 class InvoiceItemModel(Base):
     __tablename__ = 'invoice_items'
 
     id               = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    invoice_id       = Column(PG_UUID(as_uuid=True), ForeignKey('invoices.id'), nullable=False)
-    product_id       = Column(PG_UUID(as_uuid=True), ForeignKey('products.id'), nullable=False)
+    invoice_id       = Column(PG_UUID(as_uuid=True), ForeignKey('invoices.id'),  nullable=False)
+    product_id       = Column(PG_UUID(as_uuid=True), ForeignKey('products.id'),  nullable=False)
     quantity         = Column(Integer, nullable=False)
     unit_price_cents = Column(Integer, nullable=False)
     line_total_cents = Column(Integer, nullable=False)
     created_at       = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-
-    invoice = relationship('InvoiceModel', back_populates='items')
+    
+    # Relationships
+    invoice = relationship('InvoiceModel', back_populates='items', lazy='selectin')
+    product = relationship('ProductModel', back_populates='invoice_items', lazy='selectin')
