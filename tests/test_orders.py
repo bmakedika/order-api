@@ -1,212 +1,215 @@
-from fastapi.testclient import TestClient
+import pytest
 
 
-def test_create_order(client_auth):
-    response = client_auth.post("/orders", json={
-        "customer_id": "user-123",
-        "currency": "EUR"
+@pytest.fixture
+async def customer_id(client_auth):
+    response = await client_auth.post('/customers', json={
+        'email': 'testcustomer@example.com',
+        'full_name': 'Test Customer',
+    })
+    assert response.status_code == 201
+    return response.json()['id']
+
+
+async def test_create_order(client_auth, customer_id):
+    response = await client_auth.post('/orders', json={
+        'customer_id': customer_id,
+        'currency': 'EUR'
     })
     assert response.status_code == 200
     data = response.json()
-    assert data["status"] == "draft"
-    assert data["total_cents"] == 0
-    assert data["items"] == []
+    assert data['status'] == 'draft'
+    assert data['total_cents'] == 0
+    assert data['items'] == []
 
 
-def test_add_item_to_order(client_auth):
-    # create product
-    product = client_auth.post("/products", json={
-        "name": "Keyboard",
-        "description": "Mechanical keyboard",
-        "price_cents": 8900,
-        "currency": "EUR",
-        "category": "tech"
-    }).json()
+async def test_add_item_to_order(client_auth, customer_id):
+    product = (await client_auth.post('/products', json={
+        'name': 'Keyboard',
+        'description': 'Mechanical keyboard',
+        'price_cents': 8900,
+        'currency': 'EUR',
+        'category': 'tech',
+        'stock_quantity': 10,
+    })).json()
 
-    # create order
-    order = client_auth.post("/orders", json={
-        "customer_id": "user-123",
-        "currency": "EUR"
-    }).json()
+    order = (await client_auth.post('/orders', json={
+        'customer_id': customer_id,
+        'currency': 'EUR'
+    })).json()
 
-    # add product to order
-    response = client_auth.post(f"/orders/{order['id']}/items", json={
-        "product_id": product["id"],
-        "quantity": 2
+    response = await client_auth.post(f"/orders/{order['id']}/items", json={
+        'product_id': product['id'],
+        'quantity': 2
     })
     assert response.status_code == 200
     data = response.json()
-    assert data["total_cents"] == 17800
-    assert len(data["items"]) == 1
+    assert data['total_cents'] == 17800
+    assert len(data['items']) == 1
 
 
-def test_pay_order(client_auth):
-    # create product + create order + add item
-    product = client_auth.post("/products", json={
-        "name": "Keyboard",
-        "description": "Mechanical keyboard",
-        "price_cents": 8900,
-        "currency": "EUR",
-        "category": "tech"
-    }).json()
+async def test_pay_order(client_auth, customer_id):
+    product = (await client_auth.post('/products', json={
+        'name': 'Keyboard',
+        'description': 'Mechanical keyboard',
+        'price_cents': 8900,
+        'currency': 'EUR',
+        'category': 'tech',
+        'stock_quantity': 10,
+    })).json()
 
-    order = client_auth.post("/orders", json={
-        "customer_id": "user-123",
-        "currency": "EUR"
-    }).json()
+    order = (await client_auth.post('/orders', json={
+        'customer_id': customer_id,
+        'currency': 'EUR'
+    })).json()
 
-    client_auth.post(f"/orders/{order['id']}/items", json={
-        "product_id": product["id"],
-        "quantity": 1
+    await client_auth.post(f"/orders/{order['id']}/items", json={
+        'product_id': product['id'],
+        'quantity': 1
     })
 
-    # payment
-    response = client_auth.post(
+    response = await client_auth.post(
         f"/orders/{order['id']}/pay",
-        headers={"Idempotency-Key": "test-pay-001"}
+        headers={'Idempotency-Key': 'test-pay-001'}
     )
     assert response.status_code == 200
-    assert response.json()["status"] == "paid"
+    assert response.json()['status'] == 'paid'
 
 
-def test_pay_order_idempotent(client_auth):
-    # create product + create order + add item
-    product = client_auth.post("/products", json={
-        "name": "Keyboard",
-        "description": "Mechanical keyboard",
-        "price_cents": 8900,
-        "currency": "EUR",
-        "category": "tech"
-    }).json()
+async def test_pay_order_idempotent(client_auth, customer_id):
+    product = (await client_auth.post('/products', json={
+        'name': 'Keyboard',
+        'description': 'Mechanical keyboard',
+        'price_cents': 8900,
+        'currency': 'EUR',
+        'category': 'tech',
+        'stock_quantity': 10,
+    })).json()
 
-    order = client_auth.post("/orders", json={
-        "customer_id": "user-123",
-        "currency": "EUR"
-    }).json()
+    order = (await client_auth.post('/orders', json={
+        'customer_id': customer_id,
+        'currency': 'EUR'
+    })).json()
 
-    client_auth.post(f"/orders/{order['id']}/items", json={
-        "product_id": product["id"],
-        "quantity": 1
+    await client_auth.post(f"/orders/{order['id']}/items", json={
+        'product_id': product['id'],
+        'quantity': 1
     })
 
-    # premier paiement first payment
-    client_auth.post(
+    await client_auth.post(
         f"/orders/{order['id']}/pay",
-        headers={"Idempotency-Key": "test-idem-001"}
+        headers={'Idempotency-Key': 'test-idem-001'}
     )
 
-    # second payment - same key
-    response = client_auth.post(
+    response = await client_auth.post(
         f"/orders/{order['id']}/pay",
-        headers={"Idempotency-Key": "test-idem-001"}
+        headers={'Idempotency-Key': 'test-idem-001'}
     )
     assert response.status_code == 200
-    assert response.json()["status"] == "paid"
+    assert response.json()['status'] == 'paid'
 
 
-def test_pay_order_empty(client_auth):
-    order = client_auth.post("/orders", json={
-        "customer_id": "user-123",
-        "currency": "EUR"
-    }).json()
+async def test_pay_order_empty(client_auth, customer_id):
+    order = (await client_auth.post('/orders', json={
+        'customer_id': customer_id,
+        'currency': 'EUR'
+    })).json()
 
-    response = client_auth.post(
+    response = await client_auth.post(
         f"/orders/{order['id']}/pay",
-        headers={"Idempotency-Key": "test-empty-001"}
+        headers={'Idempotency-Key': 'test-empty-001'}
     )
     assert response.status_code == 400
 
 
-def test_remove_item(client_auth):
-    product = client_auth.post("/products", json={
-        "name": "Keyboard",
-        "description": "Mechanical keyboard",
-        "price_cents": 8900,
-        "currency": "EUR",
-        "category": "tech"
-    }).json()
+async def test_remove_item(client_auth, customer_id):
+    product = (await client_auth.post('/products', json={
+        'name': 'Keyboard',
+        'description': 'Mechanical keyboard',
+        'price_cents': 8900,
+        'currency': 'EUR',
+        'category': 'tech',
+        'stock_quantity': 10,
+    })).json()
 
-    order = client_auth.post("/orders", json={
-        "customer_id": "user-123",
-        "currency": "EUR"
-    }).json()
-
-    updated = client_auth.post(f"/orders/{order['id']}/items", json={
-        "product_id": product["id"],
-        "quantity": 1
-    }).json()
-
-    item_id = updated["items"][0]["id"]
-
-    response = client_auth.delete(f"/orders/{order['id']}/items/{item_id}")
-    assert response.status_code == 200
-
-    order_after = client_auth.get(f"/orders/{order['id']}").json()
-    assert order_after["total_cents"] == 0
-    assert order_after["items"] == []
-
-
-
-def test_update_order_status(client_auth):
-    order = client_auth.post('/orders', json={
-        'customer_id': 'user-123',
+    order = (await client_auth.post('/orders', json={
+        'customer_id': customer_id,
         'currency': 'EUR'
-    }).json()
-    response = client_auth.patch(
-        f"/orders/{order['id']}/status",
-        json={"status": "shipped"}
+    })).json()
+
+    updated = (await client_auth.post(f"/orders/{order['id']}/items", json={
+        'product_id': product['id'],
+        'quantity': 1
+    })).json()
+
+    item_id = updated['items'][0]['id']
+
+    response = await client_auth.delete(
+        f"/orders/{order['id']}/items/{item_id}"
     )
-
     assert response.status_code == 200
-    data = response.json()
-    assert data['status'] == 'shipped'
+
+    order_after = (await client_auth.get(f"/orders/{order['id']}")).json()
+    assert order_after['total_cents'] == 0
+    assert order_after['items'] == []
 
 
+async def test_update_order_status(client_auth, customer_id):
+    order = (await client_auth.post('/orders', json={
+        'customer_id': customer_id,
+        'currency': 'EUR'
+    })).json()
 
-def test_update_order_status_not_found(client_auth):
-    response = client_auth.patch(
-        f'/orders/00000000-0000-0000-0000-000000000000/status',
+    response = await client_auth.patch(
+        f"/orders/{order['id']}/status",
+        json={'status': 'shipped'}
+    )
+    assert response.status_code == 200
+    assert response.json()['status'] == 'shipped'
+
+
+async def test_update_order_status_not_found(client_auth):
+    response = await client_auth.patch(
+        '/orders/00000000-0000-0000-0000-000000000000/status',
         json={'status': 'shipped'}
     )
     assert response.status_code == 404
-    data = response.json()
-    assert data['detail'] == 'Order not found'
+    assert response.json()['detail'] == 'Order not found'
 
 
+async def test_get_invoice(client_auth, customer_id):
+    product = (await client_auth.post('/products', json={
+        'name': 'Keyboard',
+        'description': 'Mechanical keyboard',
+        'price_cents': 8900,
+        'currency': 'EUR',
+        'category': 'tech',
+        'stock_quantity': 10,
+    })).json()
 
-def test_get_invoice(client_auth):
-    # create product + order + item
-    product = client_auth.post("/products", json={
-        "name": "Keyboard",
-        "description": "Mechanical keyboard",
-        "price_cents": 8900,
-        "currency": "EUR",
-        "category": "tech"
-    }).json()
+    order = (await client_auth.post('/orders', json={
+        'customer_id': customer_id,
+        'currency': 'EUR'
+    })).json()
 
-    order = client_auth.post("/orders", json={
-        "customer_id": "user-123",
-        "currency": "EUR"
-    }).json()
-
-    client_auth.post(f"/orders/{order['id']}/items", json={
-        "product_id": product["id"],
-        "quantity": 1
+    await client_auth.post(f"/orders/{order['id']}/items", json={
+        'product_id': product['id'],
+        'quantity': 1
     })
 
-    # pay : invoice created automatically
-    client_auth.post(
+    await client_auth.post(
         f"/orders/{order['id']}/pay",
-        headers={"Idempotency-Key": "test-invoice-001"}
+        headers={'Idempotency-Key': 'test-invoice-001'}
     )
 
-    # get invoices by order
-    invoices = client_auth.get(f"/orders/{order['id']}/invoices").json()
+    invoices = (await client_auth.get(
+        f"/orders/{order['id']}/invoices"
+    )).json()
+    print('invoices response:', invoices)
     assert len(invoices) == 1
     invoice_id = invoices[0]['id']
 
-    # get invoice by id
-    response = client_auth.get(f"/invoices/{invoice_id}")
+    response = await client_auth.get(f'/invoices/{invoice_id}')
     assert response.status_code == 200
     data = response.json()
     assert data['id'] == invoice_id
@@ -214,9 +217,9 @@ def test_get_invoice(client_auth):
     assert data['tax'] == 1780
 
 
-def test_get_invoice_not_found(client_auth):
-    response = client_auth.get(
-        f"/invoices/00000000-0000-0000-0000-000000000000"
+async def test_get_invoice_not_found(client_auth):
+    response = await client_auth.get(
+        '/invoices/00000000-0000-0000-0000-000000000000'
     )
     assert response.status_code == 404
-    assert response.json()['detail'] == "Invoice not found"
+    assert response.json()['detail'] == 'Invoice not found'
