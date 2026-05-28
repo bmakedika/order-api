@@ -205,7 +205,6 @@ async def test_get_invoice(client_auth, customer_id):
     invoices = (await client_auth.get(
         f"/orders/{order['id']}/invoices"
     )).json()
-    print('invoices response:', invoices)
     assert len(invoices) == 1
     invoice_id = invoices[0]['id']
 
