@@ -1,10 +1,15 @@
 # Order API
 
+[![CI](https://github.com/bmakedika/order-api/actions/workflows/ci.yml/badge.svg)](https://github.com/bmakedika/order-api/actions)
+![Python](https://img.shields.io/badge/Python-3.14-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.116-009688)
+![License](https://img.shields.io/badge/license-MIT-green)
+
 ## Présentation
 
 Order API est un backoffice e-commerce sécurisé, headless et API-first, conçu pour donner aux PME de la flexibilité, de la souveraineté sur leurs données et des fonctionnalités orientées analytique
 
-Le projet gère l'intégralité du cycle de vie d'une commande - authentification, catalogue produits, paiements idempotents sécurisés, facturation automatisée et supervision en temps réel - et reste connectable à n'importe quel frontend ou outil externe
+Le projet gère l'intégralité du cycle de vie d'une commande — authentification, catalogue produits, paiements idempotents sécurisés, facturation automatisée et supervision en temps réel — et reste connectable à n'importe quel frontend ou outil externe
 
 Order API couvre l'ensemble des besoins d'un backoffice moderne :
 
@@ -33,7 +38,7 @@ Order API est né de la volonté de répondre à ce problème par une architectu
 
 ## Vision
 
-Permettre aux entreprises de faire évoluer leur e-commerce librement, sans dépendre en permanence de développeurs, tout en restant pleinement souveraines sur leurs données - la flexibilité du sur-mesure, sans la complexité technique qui va avec
+Permettre aux entreprises de faire évoluer leur e-commerce librement, sans dépendre en permanence de développeurs, tout en restant pleinement souveraines sur leurs données — la flexibilité du sur-mesure, sans la complexité technique qui va avec
 
 ---
 
@@ -49,7 +54,7 @@ Architecture API-first et headless : connexion possible à n'importe quel fronte
 
 ### Fiabilité
 
-Idempotence garantie des paiements et intégrité référentielle des commandes - aucun double paiement, aucun stock incohérent
+Idempotence garantie des paiements et intégrité référentielle des commandes — aucun double paiement, aucun stock incohérent
 
 ### Gouvernance
 
